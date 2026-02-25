@@ -1,0 +1,16 @@
+# Build artifacts
+build/
+*.o
+*.d
+
+# IDE
+.gemini/
+.vscode/
+.DS_Store
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+
+# OS
+.DS_Store
+Thumbs.db
