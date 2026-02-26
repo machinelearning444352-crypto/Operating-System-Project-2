@@ -370,6 +370,49 @@
   }
 }
 
+- (void)rightMouseDown:(NSEvent *)event {
+  NSPoint location = [self convertPoint:[event locationInWindow] fromView:nil];
+  CGFloat baseItemSize = 46;
+  CGFloat spacing = 4;
+  CGFloat totalWidth =
+      self.dockItems.count * (baseItemSize + spacing) - spacing;
+  CGFloat startX = (self.bounds.size.width - totalWidth) / 2;
+
+  for (NSInteger i = 0; i < (NSInteger)self.dockItems.count; i++) {
+    CGFloat x = startX + i * (baseItemSize + spacing);
+    NSRect itemRect = NSMakeRect(x, 10, baseItemSize, baseItemSize);
+    if (NSPointInRect(location, itemRect)) {
+      NSDictionary *item = self.dockItems[i];
+      NSMenu *menu = [[NSMenu alloc] initWithTitle:@"DockMenu"];
+
+      NSMenuItem *quitItem =
+          [[NSMenuItem alloc] initWithTitle:@"Quit"
+                                     action:@selector(quitAppFromMenu:)
+                              keyEquivalent:@""];
+      quitItem.representedObject = item[@"name"];
+      quitItem.target = self;
+      [menu addItem:quitItem];
+
+      NSMenuItem *forceQuitItem =
+          [[NSMenuItem alloc] initWithTitle:@"Force Quit"
+                                     action:@selector(quitAppFromMenu:)
+                              keyEquivalent:@""];
+      forceQuitItem.representedObject = item[@"name"];
+      forceQuitItem.target = self;
+      [menu addItem:forceQuitItem];
+
+      [NSMenu popUpContextMenu:menu withEvent:event forView:self];
+      break;
+    }
+  }
+}
+
+- (void)quitAppFromMenu:(NSMenuItem *)sender {
+  NSString *appName = sender.representedObject;
+  [self.runningApps removeObject:appName];
+  [self setNeedsDisplay:YES];
+}
+
 - (void)selectItemAtIndex:(NSInteger)index {
   self.selectedItem = index;
   [self setNeedsDisplay:YES];

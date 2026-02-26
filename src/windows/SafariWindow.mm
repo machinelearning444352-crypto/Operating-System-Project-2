@@ -104,6 +104,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   [self.safariWindow setTitle:@"Safari"];
+  self.safariWindow.releasedWhenClosed = NO;
   self.safariWindow.titlebarAppearsTransparent = YES;
   self.safariWindow.titleVisibility = NSWindowTitleHidden;
   self.safariWindow.minSize = NSMakeSize(800, 500);

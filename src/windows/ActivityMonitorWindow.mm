@@ -246,6 +246,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   [self.amWindow setTitle:@"Activity Monitor"];
+  self.amWindow.releasedWhenClosed = NO;
   self.amWindow.titlebarAppearsTransparent = YES;
   self.amWindow.minSize = NSMakeSize(800, 500);
 

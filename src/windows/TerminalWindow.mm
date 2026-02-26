@@ -59,6 +59,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   [self.termWindow setTitle:@"Terminal"];
+  self.termWindow.releasedWhenClosed = NO;
   self.termWindow.titlebarAppearsTransparent = YES;
   self.termWindow.minSize = NSMakeSize(400, 300);
 
@@ -319,49 +320,62 @@
               color:TERM_FG];
     [self printPrompt];
   } else if ([cmd isEqualToString:@"history"]) {
-    for (int i = 0; i < self.cmdHistory.count; i++) {
-      [self printLine:[NSString stringWithFormat:@"%4d  %@", i + 1,
+    for (NSUInteger i = 0; i < self.cmdHistory.count; i++) {
+      [self printLine:[NSString stringWithFormat:@"%4lu  %@",
+                                                 (unsigned long)(i + 1),
                                                  self.cmdHistory[i]]
                 color:[NSColor systemCyanColor]];
     }
     [self printPrompt];
   } else {
-    // Real EXEC
-    NSTask *task = [[NSTask alloc] init];
-    task.executableURL = [NSURL fileURLWithPath:@"/bin/sh"];
-    task.arguments = @[ @"-c", fullCmd ];
-    task.currentDirectoryURL = [NSURL fileURLWithPath:self.workingDirectory];
+    // Real EXEC - Asynchronous to prevent UI freezing
+    dispatch_async(
+        dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+          NSTask *task = [[NSTask alloc] init];
+          task.executableURL = [NSURL fileURLWithPath:@"/bin/sh"];
+          task.arguments = @[ @"-c", fullCmd ];
+          task.currentDirectoryURL =
+              [NSURL fileURLWithPath:self.workingDirectory];
 
-    NSPipe *outP = [NSPipe pipe];
-    NSPipe *errP = [NSPipe pipe];
-    task.standardOutput = outP;
-    task.standardError = errP;
+          NSPipe *outP = [NSPipe pipe];
+          NSPipe *errP = [NSPipe pipe];
+          task.standardOutput = outP;
+          task.standardError = errP;
 
-    @try {
-      [task launch];
-      NSData *dat = [outP.fileHandleForReading readDataToEndOfFile];
-      NSData *errDat = [errP.fileHandleForReading readDataToEndOfFile];
-      [task waitUntilExit];
+          @try {
+            [task launch];
+            NSData *dat = [outP.fileHandleForReading readDataToEndOfFile];
+            NSData *errDat = [errP.fileHandleForReading readDataToEndOfFile];
+            [task waitUntilExit];
 
-      if (dat.length > 0) {
-        NSString *s = [[NSString alloc] initWithData:dat
-                                            encoding:NSUTF8StringEncoding];
-        if (s)
-          [self printLine:s color:TERM_FG];
-      }
-      if (errDat.length > 0) {
-        NSString *s = [[NSString alloc] initWithData:errDat
-                                            encoding:NSUTF8StringEncoding];
-        if (s)
-          [self printLine:s color:[NSColor systemRedColor]];
-      }
-    } @catch (NSException *e) {
-      [self printLine:[NSString
-                          stringWithFormat:@"zsh: command not found: %@", cmd]
-                color:[NSColor systemRedColor]];
-    }
-
-    [self printPrompt];
+            dispatch_async(dispatch_get_main_queue(), ^{
+              if (dat.length > 0) {
+                NSString *s =
+                    [[NSString alloc] initWithData:dat
+                                          encoding:NSUTF8StringEncoding];
+                if (s)
+                  [self printLine:s color:TERM_FG];
+              }
+              if (errDat.length > 0) {
+                NSString *s =
+                    [[NSString alloc] initWithData:errDat
+                                          encoding:NSUTF8StringEncoding];
+                if (s)
+                  [self printLine:s color:[NSColor systemRedColor]];
+              }
+              [self printPrompt];
+            });
+          } @catch (NSException *e) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+              [self
+                  printLine:[NSString
+                                stringWithFormat:@"zsh: command not found: %@",
+                                                 cmd]
+                      color:[NSColor systemRedColor]];
+              [self printPrompt];
+            });
+          }
+        });
   }
 }
 
