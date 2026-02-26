@@ -1,6 +1,6 @@
 # macOS-Like Advanced Operating System
 
-A sophisticated, modern operating system implementation with a macOS-like interface, built using C, C++, Objective-C, and Swift with smooth, GPU-accelerated graphics.
+A sophisticated, modern operating system implementation with a macOS-like interface, built using C, C++, and Objective-C with smooth, GPU-accelerated graphics.
 
 ## Features
 
@@ -57,10 +57,8 @@ MacOSLikeOS/
 │   ├── ui/
 │   │   ├── window.c          # Window manager
 │   │   └── SystemUI.m        # macOS UI components
-│   ├── system/
-│   │   └── DesktopEnvironment.swift
 │   ├── apps/                 # Application implementations
-│   └── main.swift            # Entry point
+│   └── main.mm               # Entry point
 ├── build/                    # Build output
 ├── CMakeLists.txt           # Build configuration
 └── README.md                # This file
@@ -72,7 +70,6 @@ MacOSLikeOS/
 - macOS 10.13 or later
 - Xcode Command Line Tools
 - CMake 3.20+
-- Swift 5.0+
 
 ### Build Instructions
 
@@ -110,7 +107,7 @@ make -j$(sysctl -n hw.ncpu)
 - Texture management
 - Vector graphics rendering
 
-### UI Layer (Objective-C + Swift)
+### UI Layer (Objective-C)
 - Window management
 - Event processing
 - Desktop environment
@@ -124,7 +121,7 @@ make -j$(sysctl -n hw.ncpu)
 | Kernel | C | Core OS functionality |
 | Graphics Engine | C++ | GPU acceleration |
 | System UI | Objective-C | macOS integration |
-| Applications | Swift | User applications |
+| Applications | Objective-C | User applications |
 
 ## Performance Optimizations
 
@@ -149,15 +146,6 @@ make -j$(sysctl -n hw.ncpu)
 
 ## API Usage
 
-### Creating a Window
-```swift
-let window = DesktopEnvironment.shared.windowManager.createWindow(
-    title: "My App",
-    frame: NSRect(x: 100, y: 100, width: 800, height: 600),
-    style: [.titled, .closable, .miniaturizable, .resizable]
-)
-```
-
 ### Drawing Graphics
 ```c
 GraphicsContext* ctx = graphics_init(1440, 900);
@@ -165,20 +153,6 @@ Rect rect = {100, 100, 200, 200};
 Color color = {255, 100, 100, 255};
 draw_rect(ctx, rect, color);
 graphics_present(ctx);
-```
-
-### Creating an Application
-```swift
-class MyApp: Application {
-    override func createWindow() {
-        let frame = NSRect(x: 100, y: 100, width: 800, height: 600)
-        window = DesktopEnvironment.shared.windowManager.createWindow(
-            title: "My Application",
-            frame: frame,
-            style: [.titled, .closable, .miniaturizable, .resizable]
-        )
-    }
-}
 ```
 
 ## Contributing
