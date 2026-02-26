@@ -64,23 +64,28 @@
       initWithContentRect:frame
                 styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
                           NSWindowStyleMaskMiniaturizable |
-                          NSWindowStyleMaskResizable
+                          NSWindowStyleMaskResizable |
+                          NSWindowStyleMaskFullSizeContentView
                   backing:NSBackingStoreBuffered
                     defer:NO];
   [self.settingsWindow setTitle:@"System Settings"];
   [self.settingsWindow center];
+  self.settingsWindow.titlebarAppearsTransparent = YES;
+  self.settingsWindow.titleVisibility = NSWindowTitleHidden;
+  self.settingsWindow.minSize = NSMakeSize(700, 400);
 
   NSView *contentView = [[NSView alloc] initWithFrame:frame];
   contentView.wantsLayer = YES;
   contentView.layer.backgroundColor = [[NSColor windowBackgroundColor] CGColor];
   [self.settingsWindow setContentView:contentView];
 
-  // Native sidebar
+  // ─── SIDEBAR (NSVisualEffectView with Sidebar material) ───
   NSVisualEffectView *sidebar = [[NSVisualEffectView alloc]
       initWithFrame:NSMakeRect(0, 0, 250, frame.size.height)];
   sidebar.material = NSVisualEffectMaterialSidebar;
   sidebar.blendingMode = NSVisualEffectBlendingModeWithinWindow;
-  sidebar.state = NSVisualEffectStateActive;
+  sidebar.state = NSVisualEffectStateFollowsWindowActiveState;
+  sidebar.autoresizingMask = NSViewHeightSizable;
   [contentView addSubview:sidebar];
 
   // Sidebar divider
@@ -88,12 +93,14 @@
       [[NSView alloc] initWithFrame:NSMakeRect(249, 0, 1, frame.size.height)];
   sideDivider.wantsLayer = YES;
   sideDivider.layer.backgroundColor = [[NSColor separatorColor] CGColor];
+  sideDivider.autoresizingMask = NSViewHeightSizable;
   [contentView addSubview:sideDivider];
 
   // Search field
   NSSearchField *searchField = [[NSSearchField alloc]
       initWithFrame:NSMakeRect(12, frame.size.height - 45, 226, 28)];
   searchField.placeholderString = @"Search";
+  searchField.font = [NSFont systemFontOfSize:13];
   [sidebar addSubview:searchField];
 
   // Categories scroll view
@@ -102,6 +109,7 @@
   scrollView.hasVerticalScroller = YES;
   scrollView.autohidesScrollers = YES;
   scrollView.drawsBackground = NO;
+  scrollView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
   self.categoriesTable = [[NSTableView alloc] initWithFrame:scrollView.bounds];
   self.categoriesTable.dataSource = self;
@@ -110,7 +118,8 @@
   self.categoriesTable.headerView = nil;
   self.categoriesTable.backgroundColor = [NSColor clearColor];
   self.categoriesTable.selectionHighlightStyle =
-      NSTableViewSelectionHighlightStyleNone;
+      NSTableViewSelectionHighlightStyleSourceList;
+  self.categoriesTable.style = NSTableViewStyleFullWidth;
 
   NSTableColumn *col = [[NSTableColumn alloc] initWithIdentifier:@"category"];
   col.width = 250;
@@ -119,15 +128,14 @@
   scrollView.documentView = self.categoriesTable;
   [sidebar addSubview:scrollView];
 
-  // Dark detail view
+  // ─── DETAIL VIEW (system background) ───
   self.detailView =
       [[NSView alloc] initWithFrame:NSMakeRect(250, 0, frame.size.width - 250,
                                                frame.size.height)];
   self.detailView.wantsLayer = YES;
-  self.detailView.layer.backgroundColor = [[NSColor colorWithRed:0.11
-                                                           green:0.11
-                                                            blue:0.13
-                                                           alpha:1.0] CGColor];
+  self.detailView.layer.backgroundColor =
+      [[NSColor windowBackgroundColor] CGColor];
+  self.detailView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
   [contentView addSubview:self.detailView];
 
   // Show default view (About)
