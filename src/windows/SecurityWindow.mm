@@ -52,6 +52,7 @@
                     defer:NO];
   [self.securityWindow setTitle:@"Security & Privacy"];
   [self.securityWindow center];
+  self.securityWindow.releasedWhenClosed = NO;
 
   NSView *contentView = [[NSView alloc] initWithFrame:frame];
   contentView.wantsLayer = YES;

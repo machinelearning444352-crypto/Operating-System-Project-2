@@ -78,6 +78,7 @@
   [self.finderWindow setTitle:@"Finder"];
   [self.finderWindow center];
   self.finderWindow.titlebarAppearsTransparent = YES;
+  self.finderWindow.releasedWhenClosed = NO;
   self.finderWindow.titleVisibility = NSWindowTitleHidden;
   self.finderWindow.minSize = NSMakeSize(700, 400);
 

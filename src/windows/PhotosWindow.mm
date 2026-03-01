@@ -57,6 +57,7 @@
                                                         defer:NO];
     [self.photosWindow setTitle:@"Photos"];
     [self.photosWindow center];
+  self.photosWindow.releasedWhenClosed = NO;
     
     NSView *contentView = [[NSView alloc] initWithFrame:frame];
     contentView.wantsLayer = YES;

@@ -6,7 +6,7 @@
 
 @interface DesktopView : NSView
 
-@property (nonatomic, assign) NSInteger selectedIcon;
-@property (nonatomic, weak) id<DesktopViewDelegate> delegate;
+@property(nonatomic, assign) NSInteger selectedIcon;
+@property(nonatomic, assign) id<DesktopViewDelegate> delegate;
 
 @end

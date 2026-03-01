@@ -33,12 +33,16 @@
     _mutableInstalledDrivers = [NSMutableArray array];
     _mutableAvailableUpdates = [NSMutableArray array];
     _automaticUpdateCheckEnabled = YES;
-
-    [self loadDriverDatabase];
-    [self scanForDrivers];
-    [self schedulePeriodicScans];
+    // Defer initialization to avoid crashes during app startup
+    // Call startServices manually when ready
   }
   return self;
+}
+
+- (void)startServices {
+  [self loadDriverDatabase];
+  [self scanForDrivers];
+  [self schedulePeriodicScans];
 }
 
 #pragma mark - Properties

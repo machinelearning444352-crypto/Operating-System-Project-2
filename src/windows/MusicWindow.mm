@@ -68,6 +68,7 @@
                                                        defer:NO];
     [self.musicWindow setTitle:@"Music"];
     [self.musicWindow center];
+  self.musicWindow.releasedWhenClosed = NO;
     
     NSView *contentView = [[NSView alloc] initWithFrame:frame];
     contentView.wantsLayer = YES;

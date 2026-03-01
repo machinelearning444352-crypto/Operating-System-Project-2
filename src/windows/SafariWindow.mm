@@ -451,13 +451,15 @@
   t.isLoading = YES;
   t.progress = 0.1;
 
-  if (t.historyIndex == -1 ||
+  if (t.historyIndex == -1 || t.historyIndex >= (NSInteger)t.history.count ||
       ![t.history[t.historyIndex] isEqualToString:normalizedURL]) {
-    if (t.historyIndex < (NSInteger)t.history.count - 1 &&
-        t.historyIndex != -1) {
-      NSRange r = NSMakeRange(t.historyIndex + 1,
-                              t.history.count - (t.historyIndex + 1));
-      [t.history removeObjectsInRange:r];
+    if (t.historyIndex >= 0 &&
+        t.historyIndex < (NSInteger)t.history.count - 1) {
+      NSUInteger removeStart = (NSUInteger)(t.historyIndex + 1);
+      NSUInteger removeLen = t.history.count - removeStart;
+      if (removeLen > 0 && removeStart < t.history.count) {
+        [t.history removeObjectsInRange:NSMakeRange(removeStart, removeLen)];
+      }
     }
     [t.history addObject:normalizedURL];
     t.historyIndex = t.history.count - 1;

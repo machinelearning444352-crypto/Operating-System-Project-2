@@ -1,9 +1,11 @@
 #import "SettingsWindow.h"
 #import "../helpers/SystemInfoHelper.h"
+#import "../services/UserManager.h"
 #import <CoreWLAN/CoreWLAN.h>
 #import <IOKit/IOKitLib.h>
 #import <IOKit/ps/IOPSKeys.h>
 #import <IOKit/ps/IOPowerSources.h>
+#import <QuartzCore/QuartzCore.h>
 
 @interface SettingsWindow ()
 @property(nonatomic, strong) NSWindow *settingsWindow;
@@ -41,8 +43,10 @@
       @{@"icon" : @"🔊", @"name" : @"Sound"},
       @{@"icon" : @"🖥", @"name" : @"Displays"},
       @{@"icon" : @"🎨", @"name" : @"Appearance"},
+      @{@"icon" : @"💾", @"name" : @"Storage"},
       @{@"icon" : @"🌡️", @"name" : @"Fan Control"},
       @{@"icon" : @"🔋", @"name" : @"Battery"},
+      @{@"icon" : @"👥", @"name" : @"Users & Groups"},
       @{@"icon" : @"🔒", @"name" : @"Privacy & Security"},
       @{@"icon" : @"🖱", @"name" : @"Trackpad"},
       @{@"icon" : @"⌨️", @"name" : @"Keyboard"},
@@ -69,6 +73,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   [self.settingsWindow setTitle:@"System Settings"];
+  self.settingsWindow.releasedWhenClosed = NO;
   [self.settingsWindow center];
   self.settingsWindow.titlebarAppearsTransparent = YES;
   self.settingsWindow.titleVisibility = NSWindowTitleHidden;
@@ -364,6 +369,8 @@
     [self showDisplaysPanel];
   } else if ([name isEqualToString:@"Appearance"]) {
     [self showAppearancePanel];
+  } else if ([name isEqualToString:@"Storage"]) {
+    [self showStoragePanel];
   } else if ([name isEqualToString:@"Network"]) {
     [self showNetworkPanel];
   } else if ([name isEqualToString:@"Notifications"]) {
@@ -372,6 +379,8 @@
     [self showKeyboardPanel];
   } else if ([name isEqualToString:@"Trackpad"]) {
     [self showTrackpadPanel];
+  } else if ([name isEqualToString:@"Users & Groups"]) {
+    [self showUsersPanel];
   } else if ([name isEqualToString:@"Privacy & Security"]) {
     [self showPrivacyPanel];
   }
@@ -573,7 +582,236 @@
   NSLog(@"[Settings] Fan speed set to %ld%%", (long)speed);
 }
 
-#pragma mark - Battery Panel
+#pragma mark - Storage Panel
+
+- (void)showStoragePanel {
+  [self clearDetailView];
+  CGFloat y = self.detailView.bounds.size.height - 80;
+
+  NSTextField *title = [self createTitleLabel:@"Storage" atY:y];
+  [self.detailView addSubview:title];
+
+  y -= 60;
+
+  // Calculate Physical Disk Usage
+  NSError *error = nil;
+  NSDictionary *attributes =
+      [[NSFileManager defaultManager] attributesOfFileSystemForPath:@"/"
+                                                              error:&error];
+
+  long long totalSpace = [attributes[NSFileSystemSize] longLongValue];
+  long long freeSpace = [attributes[NSFileSystemFreeSize] longLongValue];
+  long long usedSpace = totalSpace - freeSpace;
+
+  CGFloat usedGB = (CGFloat)usedSpace / 1000000000.0;
+  CGFloat totalGB = (CGFloat)totalSpace / 1000000000.0;
+  CGFloat usedPercentage = (CGFloat)usedSpace / (CGFloat)totalSpace;
+
+  // macOS Title Format logic
+  NSTextField *mainDisk =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(30, y, 400, 30)];
+  mainDisk.stringValue = @"Macintosh HD";
+  mainDisk.font = [NSFont systemFontOfSize:18 weight:NSFontWeightMedium];
+  mainDisk.textColor = [NSColor labelColor];
+  mainDisk.bezeled = NO;
+  mainDisk.editable = NO;
+  mainDisk.drawsBackground = NO;
+  [self.detailView addSubview:mainDisk];
+
+  y -= 40;
+
+  NSTextField *subtitle =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(30, y, 400, 20)];
+  subtitle.stringValue =
+      [NSString stringWithFormat:@"%.1f GB available of %.1f GB",
+                                 (totalGB - usedGB), totalGB];
+  subtitle.font = [NSFont systemFontOfSize:13 weight:NSFontWeightRegular];
+  subtitle.textColor = [NSColor secondaryLabelColor];
+  subtitle.bezeled = NO;
+  subtitle.editable = NO;
+  subtitle.drawsBackground = NO;
+  [self.detailView addSubview:subtitle];
+
+  y -= 50;
+
+  // Storage Bar Graphic
+  CGFloat barWidth = 480;
+  CGFloat barHeight = 24;
+
+  NSView *storageBarTrack =
+      [[NSView alloc] initWithFrame:NSMakeRect(30, y, barWidth, barHeight)];
+  storageBarTrack.wantsLayer = YES;
+  storageBarTrack.layer.backgroundColor =
+      [[NSColor colorWithWhite:0.5 alpha:0.2] CGColor];
+  storageBarTrack.layer.cornerRadius = barHeight / 2;
+  storageBarTrack.layer.masksToBounds = YES;
+  [self.detailView addSubview:storageBarTrack];
+
+  NSView *storageBarUsed = [[NSView alloc]
+      initWithFrame:NSMakeRect(0, 0, barWidth * usedPercentage, barHeight)];
+  storageBarUsed.wantsLayer = YES;
+
+  // Create gradient
+  CAGradientLayer *gradient = [[CAGradientLayer alloc] init];
+  gradient.frame = storageBarUsed.bounds;
+  gradient.colors = @[
+    (id)[NSColor systemBlueColor].CGColor,
+    (id)[NSColor systemIndigoColor].CGColor
+  ];
+  gradient.startPoint = CGPointMake(0.0, 0.5);
+  gradient.endPoint = CGPointMake(1.0, 0.5);
+  [storageBarUsed.layer addSublayer:gradient];
+
+  [storageBarTrack addSubview:storageBarUsed];
+
+  // Legend
+  y -= 30;
+  NSTextField *legendUsed =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(30, y, 100, 15)];
+  legendUsed.stringValue = @"🔵 Used Space";
+  legendUsed.font = [NSFont systemFontOfSize:11];
+  legendUsed.textColor = [NSColor secondaryLabelColor];
+  legendUsed.bezeled = NO;
+  legendUsed.editable = NO;
+  legendUsed.drawsBackground = NO;
+  [self.detailView addSubview:legendUsed];
+
+  NSTextField *legendFree =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(140, y, 100, 15)];
+  legendFree.stringValue = @"⚪️ Free Space";
+  legendFree.font = [NSFont systemFontOfSize:11];
+  legendFree.textColor = [NSColor secondaryLabelColor];
+  legendFree.bezeled = NO;
+  legendFree.editable = NO;
+  legendFree.drawsBackground = NO;
+  [self.detailView addSubview:legendFree];
+
+  // Disclaimer
+  y -= 100;
+  NSTextField *disclaimer =
+      [[NSTextField alloc] initWithFrame:NSMakeRect(30, y, barWidth, 40)];
+  disclaimer.stringValue = @"This represents the physical disk storage "
+                           @"remaining on your host macOS machine.";
+  disclaimer.font = [NSFont systemFontOfSize:12];
+  disclaimer.textColor = [NSColor tertiaryLabelColor];
+  disclaimer.bezeled = NO;
+  disclaimer.editable = NO;
+  disclaimer.drawsBackground = NO;
+  disclaimer.cell.wraps = YES;
+  [self.detailView addSubview:disclaimer];
+}
+
+#pragma mark - Users & Groups Panel
+
+- (void)showUsersPanel {
+  [self clearDetailView];
+  CGFloat y = self.detailView.bounds.size.height - 80;
+
+  NSTextField *title = [self createTitleLabel:@"Users & Groups" atY:y];
+  [self.detailView addSubview:title];
+
+  y -= 40;
+
+  // Fetch users
+  NSArray<NSDictionary *> *users = [[UserManager sharedInstance] getAllUsers];
+
+  // Render user list
+  NSScrollView *scrollView =
+      [[NSScrollView alloc] initWithFrame:NSMakeRect(30, y - 200, 480, 200)];
+  scrollView.wantsLayer = YES;
+  scrollView.layer.backgroundColor = [[NSColor colorWithWhite:1.0
+                                                        alpha:0.05] CGColor];
+  scrollView.layer.cornerRadius = 8;
+  scrollView.layer.borderColor = [[NSColor separatorColor] CGColor];
+  scrollView.layer.borderWidth = 1;
+  [self.detailView addSubview:scrollView];
+
+  NSView *docView = [[NSView alloc]
+      initWithFrame:NSMakeRect(0, 0, 480, MAX(200, users.count * 60))];
+
+  CGFloat listY = docView.bounds.size.height - 60;
+  for (NSDictionary *u in users) {
+    NSView *row = [[NSView alloc] initWithFrame:NSMakeRect(0, listY, 480, 60)];
+
+    // Avatar
+    NSTextField *icon =
+        [[NSTextField alloc] initWithFrame:NSMakeRect(15, 15, 30, 30)];
+    icon.stringValue = @"👤";
+    icon.font = [NSFont systemFontOfSize:24];
+    icon.bezeled = NO;
+    icon.editable = NO;
+    icon.drawsBackground = NO;
+    [row addSubview:icon];
+
+    NSTextField *nameLabel =
+        [[NSTextField alloc] initWithFrame:NSMakeRect(60, 30, 200, 20)];
+    nameLabel.stringValue = u[@"username"];
+    nameLabel.font = [NSFont boldSystemFontOfSize:14];
+    nameLabel.textColor = [NSColor labelColor];
+    nameLabel.bezeled = NO;
+    nameLabel.editable = NO;
+    nameLabel.drawsBackground = NO;
+    [row addSubview:nameLabel];
+
+    NSTextField *roleLabel =
+        [[NSTextField alloc] initWithFrame:NSMakeRect(60, 15, 200, 15)];
+    roleLabel.stringValue = [u[@"isAdmin"] boolValue] ? @"Admin" : @"Standard";
+    roleLabel.font = [NSFont systemFontOfSize:12];
+    roleLabel.textColor = [NSColor secondaryLabelColor];
+    roleLabel.bezeled = NO;
+    roleLabel.editable = NO;
+    roleLabel.drawsBackground = NO;
+    [row addSubview:roleLabel];
+
+    // Divider
+    if (listY > 0) {
+      NSView *div = [[NSView alloc] initWithFrame:NSMakeRect(60, 0, 420, 1)];
+      div.wantsLayer = YES;
+      div.layer.backgroundColor = [[NSColor separatorColor] CGColor];
+      [row addSubview:div];
+    }
+
+    [docView addSubview:row];
+    listY -= 60;
+  }
+
+  scrollView.documentView = docView;
+
+  // Guest Account Toggle
+  y -= 250;
+  NSButton *guestCheck =
+      [[NSButton alloc] initWithFrame:NSMakeRect(30, y, 300, 20)];
+  [guestCheck setButtonType:NSButtonTypeSwitch];
+  guestCheck.title = @"Allow guests to log in to this computer";
+  guestCheck.state = [[UserManager sharedInstance] isGuestEnabled]
+                         ? NSControlStateValueOn
+                         : NSControlStateValueOff;
+  guestCheck.target = self;
+  guestCheck.action = @selector(toggleGuestMode:);
+  [self.detailView addSubview:guestCheck];
+
+  // Admin restriction notice
+  if (![[UserManager sharedInstance] isCurrentUserAdmin]) {
+    NSTextField *notice =
+        [[NSTextField alloc] initWithFrame:NSMakeRect(30, y - 40, 480, 20)];
+    notice.stringValue = @"🔒 You must be an administrator to add/remove users "
+                         @"or change guest settings.";
+    notice.font = [NSFont systemFontOfSize:12];
+    notice.textColor = [NSColor systemOrangeColor];
+    notice.bezeled = NO;
+    notice.editable = NO;
+    notice.drawsBackground = NO;
+    [self.detailView addSubview:notice];
+    guestCheck.enabled = NO;
+  }
+}
+
+- (void)toggleGuestMode:(NSButton *)sender {
+  BOOL enabled = (sender.state == NSControlStateValueOn);
+  [[UserManager sharedInstance] setGuestEnabled:enabled];
+}
+
+#pragma mark - Network Panel
 
 - (void)showBatteryPanel {
   [self clearDetailView];

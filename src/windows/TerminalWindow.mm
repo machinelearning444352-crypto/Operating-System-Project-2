@@ -171,20 +171,25 @@
 }
 
 - (void)printPrompt {
-  NSString *pStr =
-      [NSString stringWithFormat:@"guest@virtualos %@ %% ", [self shortPath]];
+  NSString *prefix = @"guest@virtualos";
+  NSString *sp = [self shortPath];
+  NSString *pStr = [NSString stringWithFormat:@"%@ %@ %% ", prefix, sp];
   NSMutableAttributedString *pMas =
       [[NSMutableAttributedString alloc] initWithString:pStr];
 
-  // Highlight guest@virtualos in green
+  // Safely compute ranges to avoid out-of-bounds
+  NSUInteger prefixLen = MIN(prefix.length, pMas.length);
   [pMas addAttribute:NSForegroundColorAttributeName
                value:[NSColor systemGreenColor]
-               range:NSMakeRange(0, 15)];
-  // Highlight path in cyan
-  NSRange pathRange = NSMakeRange(16, [self shortPath].length);
-  [pMas addAttribute:NSForegroundColorAttributeName
-               value:[NSColor systemCyanColor]
-               range:pathRange];
+               range:NSMakeRange(0, prefixLen)];
+
+  NSUInteger pathStart = prefix.length + 1; // space after prefix
+  if (pathStart < pMas.length && sp.length > 0) {
+    NSUInteger pathLen = MIN(sp.length, pMas.length - pathStart);
+    [pMas addAttribute:NSForegroundColorAttributeName
+                 value:[NSColor systemCyanColor]
+                 range:NSMakeRange(pathStart, pathLen)];
+  }
 
   [pMas addAttribute:NSFontAttributeName
                value:[NSFont fontWithName:@"Menlo-Bold" size:14]
@@ -196,7 +201,7 @@
       scrollRangeToVisible:NSMakeRange(self.consoleView.string.length, 0)];
 
   self.titleLbl.stringValue =
-      [NSString stringWithFormat:@"guest@virtualos: %@", [self shortPath]];
+      [NSString stringWithFormat:@"guest@virtualos: %@", sp];
 }
 
 #pragma mark - Input Handling
@@ -266,10 +271,21 @@
 }
 
 - (void)replaceCurrentInput:(NSString *)str {
+  NSUInteger strLen = self.consoleView.string.length;
+  if (self.promptEndIndex > strLen) {
+    // Prompt index is stale; just append
+    [self printPrompt];
+    return;
+  }
   NSRange inputR =
-      NSMakeRange(self.promptEndIndex,
-                  self.consoleView.string.length - self.promptEndIndex);
-  [self.consoleView.textStorage replaceCharactersInRange:inputR withString:str];
+      NSMakeRange(self.promptEndIndex, strLen - self.promptEndIndex);
+  @try {
+    [self.consoleView.textStorage replaceCharactersInRange:inputR
+                                                withString:str];
+  } @catch (NSException *e) {
+    // Range was invalid, ignore
+    return;
+  }
   [self.consoleView
       setSelectedRange:NSMakeRange(self.consoleView.string.length, 0)];
 }
@@ -329,13 +345,14 @@
     [self printPrompt];
   } else {
     // Real EXEC - Asynchronous to prevent UI freezing
+    __weak TerminalWindow *weakSelf = self;
+    NSString *workDir = [self.workingDirectory copy];
     dispatch_async(
         dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
           NSTask *task = [[NSTask alloc] init];
           task.executableURL = [NSURL fileURLWithPath:@"/bin/sh"];
           task.arguments = @[ @"-c", fullCmd ];
-          task.currentDirectoryURL =
-              [NSURL fileURLWithPath:self.workingDirectory];
+          task.currentDirectoryURL = [NSURL fileURLWithPath:workDir];
 
           NSPipe *outP = [NSPipe pipe];
           NSPipe *errP = [NSPipe pipe];
@@ -349,30 +366,36 @@
             [task waitUntilExit];
 
             dispatch_async(dispatch_get_main_queue(), ^{
+              __strong TerminalWindow *strongSelf = weakSelf;
+              if (!strongSelf)
+                return;
               if (dat.length > 0) {
                 NSString *s =
                     [[NSString alloc] initWithData:dat
                                           encoding:NSUTF8StringEncoding];
                 if (s)
-                  [self printLine:s color:TERM_FG];
+                  [strongSelf printLine:s color:TERM_FG];
               }
               if (errDat.length > 0) {
                 NSString *s =
                     [[NSString alloc] initWithData:errDat
                                           encoding:NSUTF8StringEncoding];
                 if (s)
-                  [self printLine:s color:[NSColor systemRedColor]];
+                  [strongSelf printLine:s color:[NSColor systemRedColor]];
               }
-              [self printPrompt];
+              [strongSelf printPrompt];
             });
           } @catch (NSException *e) {
             dispatch_async(dispatch_get_main_queue(), ^{
-              [self
+              __strong TerminalWindow *strongSelf = weakSelf;
+              if (!strongSelf)
+                return;
+              [strongSelf
                   printLine:[NSString
                                 stringWithFormat:@"zsh: command not found: %@",
                                                  cmd]
                       color:[NSColor systemRedColor]];
-              [self printPrompt];
+              [strongSelf printPrompt];
             });
           }
         });

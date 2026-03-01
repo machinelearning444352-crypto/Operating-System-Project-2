@@ -226,6 +226,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.window.title = @"Automator";
+  self.window.releasedWhenClosed = NO;
   self.window.backgroundColor = [NSColor colorWithRed:0.12
                                                 green:0.12
                                                  blue:0.14
@@ -236,8 +237,7 @@
   // ===== Toolbar =====
   NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, 608, 950, 42)];
   toolbar.wantsLayer = YES;
-  toolbar.layer.backgroundColor =
-      [NSColor controlBackgroundColor].CGColor;
+  toolbar.layer.backgroundColor = [NSColor controlBackgroundColor].CGColor;
   toolbar.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
 
   self.workflowType =
@@ -283,8 +283,7 @@
   // ===== Action Library (Left) =====
   NSView *libPanel = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 300, 608)];
   libPanel.wantsLayer = YES;
-  libPanel.layer.backgroundColor =
-      [NSColor controlBackgroundColor].CGColor;
+  libPanel.layer.backgroundColor = [NSColor controlBackgroundColor].CGColor;
   libPanel.autoresizingMask = NSViewHeightSizable;
 
   self.searchField =

@@ -39,6 +39,7 @@
     self.title = @"Software Update";
     self.minSize = NSMakeSize(800, 600);
     [self center];
+    self.releasedWhenClosed = NO;
 
     self.updateManager = [UpdateManager sharedManager];
     self.updateManager.delegate = self;

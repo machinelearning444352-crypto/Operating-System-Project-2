@@ -89,6 +89,7 @@
                     defer:NO];
   [self.forceQuitWindow setTitle:@"Force Quit Applications"];
   [self.forceQuitWindow center];
+  self.forceQuitWindow.releasedWhenClosed = NO;
 
   NSView *contentView = [[NSView alloc] initWithFrame:frame];
   contentView.wantsLayer = YES;

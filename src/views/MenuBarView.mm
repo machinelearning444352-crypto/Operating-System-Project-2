@@ -40,11 +40,16 @@
 }
 
 - (void)updateClock {
-  self.currentTime = [self.timeFormatter stringFromDate:[NSDate date]];
+  NSLog(@"[DEBUG] MenuBarView updateClock called");
+  if (self.timeFormatter) {
+    self.currentTime = [self.timeFormatter stringFromDate:[NSDate date]];
+  }
   [self setNeedsDisplay:YES];
+  NSLog(@"[DEBUG] MenuBarView updateClock done");
 }
 
 - (void)drawRect:(NSRect)dirtyRect {
+  NSLog(@"[DEBUG] Entering MenuBarView drawRect");
   [self.menuItemRects removeAllObjects];
 
   CGFloat barH = self.bounds.size.height;
@@ -66,6 +71,8 @@
   [[NSColor colorWithWhite:0.0 alpha:0.12] setFill];
   NSRectFill(NSMakeRect(0, 0, barW, 0.5));
 
+  NSLog(@"[DEBUG] MenuBarView DrawRect: Layer 3 complete");
+
   // ─── APPLE LOGO ───
   self.appleLogoRect = NSMakeRect(6, 0, 34, barH);
 
@@ -83,9 +90,13 @@
                                             weight:NSFontWeightMedium],
     NSForegroundColorAttributeName : [NSColor colorWithWhite:0.0 alpha:0.88]
   };
+
+  NSLog(@"[DEBUG] MenuBarView DrawRect: Apple Logo attributes set");
   NSSize appleSize = [@"" sizeWithAttributes:appleAttrs];
   [@"" drawAtPoint:NSMakePoint(14, (barH - appleSize.height) / 2)
       withAttributes:appleAttrs];
+
+  NSLog(@"[DEBUG] MenuBarView DrawRect: Apple Logo drawn");
 
   // ─── LEFT SIDE: App name + Menus ───
   CGFloat xOffset = 44;
@@ -95,6 +106,8 @@
     NSFontAttributeName : [NSFont systemFontOfSize:13 weight:NSFontWeightBold],
     NSForegroundColorAttributeName : [NSColor colorWithWhite:0.0 alpha:0.88]
   };
+
+  NSLog(@"[DEBUG] MenuBarView DrawRect: activeApp size check");
   NSSize appNameSize = [self.activeApp sizeWithAttributes:appNameAttrs];
   NSRect appNameRect = NSMakeRect(xOffset - 6, 0, appNameSize.width + 12, barH);
   [self.menuItemRects addObject:@{
@@ -148,6 +161,8 @@
         withAttributes:menuAttrs];
     xOffset += size.width + 16;
   }
+
+  NSLog(@"[DEBUG] MenuBarView DrawRect: Left side text complete");
 
   // ─── RIGHT SIDE: Status Icons ───
   NSDictionary *statusAttrs = @{

@@ -27,6 +27,7 @@
 }
 
 - (void)drawRect:(NSRect)dirtyRect {
+  NSLog(@"[DEBUG] Entering DesktopView drawRect");
   CGFloat w = self.bounds.size.width;
   CGFloat h = self.bounds.size.height;
 
@@ -138,6 +139,8 @@
                                  1.0, nil];
   [lakeGrad drawInRect:lakeRect angle:0];
 
+  NSLog(@"[DEBUG] DrawRect: Finished lake reflection");
+
   // Subtle light flare in upper-right
   NSGradient *flareGrad = [[NSGradient alloc]
       initWithStartingColor:[NSColor colorWithWhite:1.0 alpha:0.12]
@@ -153,7 +156,10 @@
 
   NSArray *iconEmojis = @[ @"💻", @"📁", @"⬇️", @"📦", @"🗑️" ];
 
+  NSLog(@"[DEBUG] DrawRect: Starting to loop icons");
+
   for (NSInteger i = 0; i < (NSInteger)self.desktopIcons.count; i++) {
+    NSLog(@"[DEBUG] DrawRect: Drawing icon %ld", (long)i);
     NSDictionary *iconData = self.desktopIcons[i];
     CGFloat iconY;
     if (i == 4) {
@@ -177,7 +183,7 @@
     }
 
     // Draw icon
-    NSString *emoji = iconEmojis[i];
+    NSString *emoji = i < (NSInteger)iconEmojis.count ? iconEmojis[i] : @"📄";
     NSDictionary *emojiAttrs =
         @{NSFontAttributeName : [NSFont systemFontOfSize:44]};
     NSSize emojiSize = [emoji sizeWithAttributes:emojiAttrs];
@@ -205,7 +211,9 @@
 
     NSRect labelRect = NSMakeRect(iconX - 10, iconY + 2, 96, 28);
     [iconData[@"name"] drawInRect:labelRect withAttributes:labelAttrs];
+    NSLog(@"[DEBUG] DrawRect: Finished drawing icon %ld", (long)i);
   }
+  NSLog(@"[DEBUG] DrawRect: Returning from DesktopView drawRect");
 }
 
 - (void)mouseDown:(NSEvent *)event {

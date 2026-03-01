@@ -1,0 +1,6 @@
+(lldb) target create "./build/macOSDesktop"
+Current executable set to '/Users/Samar/Desktop/Operating System Project 2/build/macOSDesktop' (arm64).
+(lldb) command source -s 0 'lldb_script.txt'
+Executing commands in '/Users/Samar/Desktop/Operating System Project 2/lldb_script.txt'.
+(lldb) run
+error: process exited with status -1 (attach failed (Not allowed to attach to process.  Look in the console messages (Console.app), near the debugserver entries, when the attach failed.  The subsystem that denied the attach permission will likely have logged an informative message about why it was denied.))

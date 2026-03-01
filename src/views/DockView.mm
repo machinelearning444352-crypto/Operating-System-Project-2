@@ -102,6 +102,7 @@
 }
 
 - (void)drawRect:(NSRect)dirtyRect {
+  NSLog(@"[DEBUG] Entering DockView drawRect");
   CFTimeInterval currentTime = CACurrentMediaTime();
   CFTimeInterval deltaTime = currentTime - self.lastUpdateTime;
   self.lastUpdateTime = currentTime;
@@ -292,10 +293,15 @@
     needsAnimation = YES;
 
   if (needsAnimation) {
+    __weak DockView *weakSelf = self;
     dispatch_async(dispatch_get_main_queue(), ^{
-      [self setNeedsDisplay:YES];
+      if (weakSelf) {
+        [weakSelf setNeedsDisplay:YES];
+      }
     });
   }
+
+  NSLog(@"[DEBUG] DrawRect: Returning from DockView drawRect");
 }
 
 - (void)updateAnimations:(CFTimeInterval)deltaTime {

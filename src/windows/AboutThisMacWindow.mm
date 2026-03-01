@@ -30,6 +30,7 @@
                     defer:NO];
   [self.aboutWindow setTitle:@"About This Mac"];
   [self.aboutWindow center];
+  self.aboutWindow.releasedWhenClosed = NO;
 
   NSView *contentView = [[NSView alloc] initWithFrame:frame];
   contentView.wantsLayer = YES;

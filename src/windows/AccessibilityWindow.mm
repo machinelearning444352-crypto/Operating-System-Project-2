@@ -42,6 +42,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.window.title = @"Accessibility";
+  self.window.releasedWhenClosed = NO;
   self.window.backgroundColor = [NSColor colorWithRed:0.12
                                                 green:0.12
                                                  blue:0.14
@@ -52,8 +53,7 @@
   // ===== Sidebar =====
   NSView *sidebar = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 200, 580)];
   sidebar.wantsLayer = YES;
-  sidebar.layer.backgroundColor =
-      [NSColor controlBackgroundColor].CGColor;
+  sidebar.layer.backgroundColor = [NSColor controlBackgroundColor].CGColor;
   sidebar.autoresizingMask = NSViewHeightSizable;
 
   NSArray *categories = @[

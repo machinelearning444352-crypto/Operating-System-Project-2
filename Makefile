@@ -55,13 +55,15 @@ WINDOW_SOURCES = \
 	$(WINDOWS_DIR)/ConsoleWindow.mm \
 	$(WINDOWS_DIR)/NetworkUtilityWindow.mm \
 	$(WINDOWS_DIR)/AutomatorWindow.mm \
-	$(WINDOWS_DIR)/AccessibilityWindow.mm
+	$(WINDOWS_DIR)/AccessibilityWindow.mm \
+	$(WINDOWS_DIR)/LoginWindow.mm
 
 HELPER_SOURCES = \
 	$(HELPERS_DIR)/SystemInfoHelper.mm \
 	$(HELPERS_DIR)/GlassmorphismHelper.mm
 
 SERVICE_SOURCES = \
+	$(SERVICES_DIR)/UserManager.mm \
 	$(SERVICES_DIR)/NativeSMSEngine.mm \
 	$(SERVICES_DIR)/NetworkEngine.mm \
 	$(SERVICES_DIR)/FileSystemManager_Base.mm \

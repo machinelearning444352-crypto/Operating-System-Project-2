@@ -51,6 +51,7 @@
                     defer:NO];
   [self.mailWindow setTitle:@"Mail"];
   [self.mailWindow center];
+  self.mailWindow.releasedWhenClosed = NO;
 
   NSView *contentView = [[NSView alloc] initWithFrame:frame];
   contentView.wantsLayer = YES;

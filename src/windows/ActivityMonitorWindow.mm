@@ -1,5 +1,6 @@
 #import "ActivityMonitorWindow.h"
 #import <QuartzCore/QuartzCore.h>
+#include <libproc.h>
 #include <mach/mach.h>
 #include <mach/mach_host.h>
 #include <sys/sysctl.h>
@@ -465,7 +466,7 @@
   [self addCol:@"% CPU" width:80];
   [self addCol:@"CPU Time" width:100];
   [self addCol:@"Threads" width:80];
-  [self addCol:@"Idle Wake Ups" width:100];
+  [self addCol:@"Memory" width:100];
   [self addCol:@"PID" width:80];
   [self addCol:@"User" width:120];
 
@@ -517,15 +518,26 @@
     node.pid = p->kp_proc.p_pid;
     node.name = name;
     node.user = (p->kp_eproc.e_pcred.p_ruid == 0) ? @"root" : NSUserName();
-    // Simulate cpu usage based on pid hashing for dynamic feel without heavy
-    // host queries
-    node.cpuPct = (double)(((node.pid * 17) % 100) / 10.0);
+
+    struct proc_taskinfo pti;
+    int ret = proc_pidinfo(node.pid, PROC_PIDTASKINFO, 0, &pti, sizeof(pti));
+    if (ret == sizeof(pti)) {
+      node.threads = pti.pti_threadnum;
+      node.memBytes = pti.pti_resident_size;
+      node.cpuPct = (double)(((node.pid * 17) % 100) /
+                             10.0); // Keep faux CPU% since instantaneous CPU
+                                    // requires delta tracking between ticks
+    } else {
+      node.threads = 1;
+      node.memBytes = 0;
+      node.cpuPct = 0.0;
+    }
+
     if ([name isEqualToString:@"WindowServer"])
       node.cpuPct += 15.0;
     if ([name isEqualToString:@"macOSDesktop"])
       node.cpuPct += 20.0;
 
-    node.threads = 1 + ((node.pid * 7) % 30);
     totalThreads += node.threads;
 
     [self.masterList addObject:node];
@@ -640,9 +652,10 @@
                                                (n.pid % 60), (n.pid % 100)];
   else if ([colId isEqualToString:@"Threads"])
     t.stringValue = [NSString stringWithFormat:@"%d", n.threads];
-  else if ([colId isEqualToString:@"Idle Wake Ups"])
-    t.stringValue = [NSString stringWithFormat:@"%d", n.pid * 3 % 500];
-  else if ([colId isEqualToString:@"PID"])
+  else if ([colId isEqualToString:@"Memory"]) {
+    double mb = n.memBytes / (1024.0 * 1024.0);
+    t.stringValue = [NSString stringWithFormat:@"%.1f MB", mb];
+  } else if ([colId isEqualToString:@"PID"])
     t.stringValue = [NSString stringWithFormat:@"%d", n.pid];
   else if ([colId isEqualToString:@"User"]) {
     t.stringValue = n.user;

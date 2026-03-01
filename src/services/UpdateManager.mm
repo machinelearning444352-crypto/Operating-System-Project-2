@@ -38,11 +38,15 @@
     _automaticDownloadEnabled = NO;
     _automaticInstallEnabled = NO;
     _checkInterval = 86400; // 24 hours
-
-    [self loadInstalledUpdates];
-    [self scheduleAutomaticChecks];
+    // Defer initialization to avoid crashes during app startup
+    // Call startServices manually when ready
   }
   return self;
+}
+
+- (void)startServices {
+  [self loadInstalledUpdates];
+  [self scheduleAutomaticChecks];
 }
 
 - (void)dealloc {
@@ -389,7 +393,7 @@
       update.updateID = dict[@"updateID"];
       update.name = dict[@"name"];
       update.version = dict[@"version"];
-      update.type = (UpdateType)[dict[@"type"] integerValue];
+      update.type = (UpdateType)(NSInteger)[dict[@"type"] integerValue];
       update.status = UpdateStatusInstalled;
       [self.mutableInstalledUpdates addObject:update];
     }

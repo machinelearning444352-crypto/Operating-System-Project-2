@@ -46,6 +46,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.window.title = @"Console";
+  self.window.releasedWhenClosed = NO;
   self.window.backgroundColor = [NSColor colorWithRed:0.11
                                                 green:0.11
                                                  blue:0.13
@@ -57,8 +58,7 @@
   // ===== Toolbar =====
   NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, 610, 1000, 40)];
   toolbar.wantsLayer = YES;
-  toolbar.layer.backgroundColor =
-      [NSColor controlBackgroundColor].CGColor;
+  toolbar.layer.backgroundColor = [NSColor controlBackgroundColor].CGColor;
   toolbar.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
 
   NSButton *clearBtn =
@@ -168,8 +168,7 @@
   // ===== Status Bar =====
   NSView *statusBar = [[NSView alloc] initWithFrame:NSMakeRect(0, 0, 1000, 30)];
   statusBar.wantsLayer = YES;
-  statusBar.layer.backgroundColor =
-      [NSColor controlBackgroundColor].CGColor;
+  statusBar.layer.backgroundColor = [NSColor controlBackgroundColor].CGColor;
   statusBar.autoresizingMask = NSViewWidthSizable;
   self.statusLabel =
       [[NSTextField alloc] initWithFrame:NSMakeRect(10, 5, 500, 18)];

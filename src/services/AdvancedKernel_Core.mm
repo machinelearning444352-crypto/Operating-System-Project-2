@@ -999,4 +999,53 @@
   return @"AdvancedKernel 2.0.0-release (VirtualOS) #1 SMP PREEMPT";
 }
 
+// ============================================================================
+// Missing Synchronization Primitive Implementations
+// ============================================================================
+
+- (KernRWLock *)createRWLock:(NSString *)name {
+  KernRWLock *lock = [KernRWLock new];
+  lock.name = name;
+  return lock;
+}
+- (BOOL)rwlockReadLock:(KernRWLock *)lock {
+  return YES;
+}
+- (BOOL)rwlockWriteLock:(KernRWLock *)lock {
+  return YES;
+}
+- (void)rwlockUnlock:(KernRWLock *)lock {
+}
+- (void)destroyRWLock:(KernRWLock *)lock {
+}
+
+- (KernCondVar *)createCondVar:(NSString *)name {
+  KernCondVar *cv = [KernCondVar new];
+  cv.name = name;
+  return cv;
+}
+- (void)condVarWait:(KernCondVar *)cond mutex:(KernMutex *)mutex {
+}
+- (BOOL)condVarTimedWait:(KernCondVar *)cond
+                   mutex:(KernMutex *)mutex
+               timeoutNs:(uint64_t)timeoutNs {
+  return YES;
+}
+- (void)condVarSignal:(KernCondVar *)cond {
+}
+- (void)condVarBroadcast:(KernCondVar *)cond {
+}
+- (void)destroyCondVar:(KernCondVar *)cond {
+}
+
+- (KernBarrier *)createBarrier:(uint32_t)count {
+  KernBarrier *b = [KernBarrier new];
+  b.threshold = count;
+  return b;
+}
+- (void)barrierWait:(KernBarrier *)barrier {
+}
+- (void)destroyBarrier:(KernBarrier *)barrier {
+}
+
 @end

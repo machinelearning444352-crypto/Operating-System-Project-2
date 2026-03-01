@@ -153,6 +153,7 @@
                     defer:NO];
   [self.calendarWindow setTitle:@"Calendar"];
   [self.calendarWindow center];
+  self.calendarWindow.releasedWhenClosed = NO;
 
   NSView *contentView = [[NSView alloc] initWithFrame:frame];
   contentView.wantsLayer = YES;

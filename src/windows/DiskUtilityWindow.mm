@@ -79,6 +79,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.window.title = @"Disk Utility";
+  self.window.releasedWhenClosed = NO;
   self.window.backgroundColor = [NSColor colorWithRed:0.12
                                                 green:0.12
                                                  blue:0.14
@@ -90,8 +91,7 @@
   // ===== Toolbar =====
   NSView *toolbar = [[NSView alloc] initWithFrame:NSMakeRect(0, 555, 850, 45)];
   toolbar.wantsLayer = YES;
-  toolbar.layer.backgroundColor =
-      [NSColor controlBackgroundColor].CGColor;
+  toolbar.layer.backgroundColor = [NSColor controlBackgroundColor].CGColor;
   toolbar.autoresizingMask = NSViewWidthSizable | NSViewMinYMargin;
   [content addSubview:toolbar];
 

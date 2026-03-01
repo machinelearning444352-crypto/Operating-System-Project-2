@@ -75,6 +75,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.configWindow.title = @"SMS Configuration";
+  self.configWindow.releasedWhenClosed = NO;
   [self.configWindow center];
 
   NSView *root = self.configWindow.contentView;

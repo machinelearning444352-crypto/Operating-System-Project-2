@@ -190,6 +190,7 @@ static NSArray *_carrierEmojis = nil;
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.messagesWindow.title = @"Messages";
+  self.messagesWindow.releasedWhenClosed = NO;
   self.messagesWindow.minSize = NSMakeSize(700, 450);
   [self.messagesWindow center];
 

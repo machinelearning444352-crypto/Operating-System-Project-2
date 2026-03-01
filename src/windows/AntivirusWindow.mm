@@ -114,6 +114,7 @@
                                                     defer:NO];
     [self.avWindow setTitle:@"Enterprise Antivirus System"];
     [self.avWindow center];
+  self.avWindow.releasedWhenClosed = NO;
     
     NSView *contentView = [[NSView alloc] initWithFrame:frame];
     contentView.wantsLayer = YES;

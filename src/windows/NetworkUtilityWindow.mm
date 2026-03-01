@@ -52,6 +52,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.window.title = @"Network Utility";
+  self.window.releasedWhenClosed = NO;
   self.window.backgroundColor = [NSColor colorWithRed:0.12
                                                 green:0.12
                                                  blue:0.14

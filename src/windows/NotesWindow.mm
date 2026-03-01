@@ -62,6 +62,7 @@
                     defer:NO];
   [self.notesWindow setTitle:@"Notes"];
   [self.notesWindow center];
+  self.notesWindow.releasedWhenClosed = NO;
 
   NSView *contentView = [[NSView alloc] initWithFrame:frame];
   contentView.wantsLayer = YES;

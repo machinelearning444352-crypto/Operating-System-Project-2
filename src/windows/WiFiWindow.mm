@@ -64,6 +64,7 @@
                   backing:NSBackingStoreBuffered
                     defer:NO];
   self.wifiWindow.title = @"Wi-Fi";
+  self.wifiWindow.releasedWhenClosed = NO;
   self.wifiWindow.minSize = NSMakeSize(420, 600);
   [self.wifiWindow center];
 
