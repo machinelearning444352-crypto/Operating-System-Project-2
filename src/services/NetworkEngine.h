@@ -1,12 +1,12 @@
 #pragma once
 #import <Cocoa/Cocoa.h>
-#import <CoreWLAN/CoreWLAN.h>
 
 // ============================================================================
-// NETWORK ENGINE — Real WiFi, TCP/IP, DNS, ICMP from scratch
+// NETWORK ENGINE — Fully Virtualized WiFi, TCP/IP, DNS, ICMP
+// This is an independent OS — all network state is simulated.
 // ============================================================================
 
-// WiFi Network Entry (from real scan)
+// WiFi Network Entry (virtualized)
 @interface WiFiNetworkEntry : NSObject
 @property(nonatomic, strong) NSString *ssid;
 @property(nonatomic, strong) NSString *bssid;
@@ -18,10 +18,9 @@
 @property(nonatomic, strong) NSString *band;    // 2.4GHz, 5GHz, 6GHz
 @property(nonatomic, strong) NSString *phyMode; // 802.11ax, ac, n, etc.
 @property(nonatomic, assign) BOOL isCurrentNetwork;
-@property(nonatomic, strong) CWNetwork *rawNetwork; // CoreWLAN object
 @end
 
-// Network Interface Info (from real system)
+// Network Interface Info (virtualized)
 @interface NetworkInterfaceInfo : NSObject
 @property(nonatomic, strong) NSString *name; // en0, en1, lo0...
 @property(nonatomic, strong) NSString *displayName;
@@ -39,7 +38,7 @@
 @property(nonatomic, assign) uint64_t packetsOut;
 @end
 
-// Connection Details (from real system)
+// Connection Details (virtualized)
 @interface WiFiConnectionDetails : NSObject
 @property(nonatomic, strong) NSString *ssid;
 @property(nonatomic, strong) NSString *bssid;
@@ -91,13 +90,13 @@ typedef void (^DNSCompletion)(DNSResult *result);
 typedef void (^ThroughputCallback)(double bytesInPerSec, double bytesOutPerSec);
 
 // ============================================================================
-// NETWORK ENGINE
+// NETWORK ENGINE — Fully independent, virtualized
 // ============================================================================
 @interface NetworkEngine : NSObject
 
 + (instancetype)sharedInstance;
 
-// === WiFi Control (Real CoreWLAN) ===
+// === WiFi Control (Virtualized) ===
 - (void)scanForNetworks:(NetworkScanCompletion)completion;
 - (void)connectToNetwork:(NSString *)ssid
                 password:(NSString *)password
@@ -110,7 +109,7 @@ typedef void (^ThroughputCallback)(double bytesInPerSec, double bytesOutPerSec);
 - (WiFiConnectionDetails *)currentConnectionDetails;
 - (NSString *)currentSSID;
 
-// === Network Interface Info (Real BSD/sysctl) ===
+// === Network Interface Info (Virtualized) ===
 - (NSArray<NetworkInterfaceInfo *> *)allInterfaces;
 - (NetworkInterfaceInfo *)primaryInterface;
 - (NSString *)localIPAddress;
@@ -118,22 +117,22 @@ typedef void (^ThroughputCallback)(double bytesInPerSec, double bytesOutPerSec);
 - (NSArray<NSString *> *)dnsServers;
 - (NSString *)externalIPAddress:(void (^)(NSString *ip))completion;
 
-// === ICMP Ping (Real raw sockets) ===
+// === ICMP Ping (Simulated) ===
 - (void)ping:(NSString *)host
          count:(NSInteger)count
     completion:(PingCompletion)eachPing;
 - (void)ping:(NSString *)host completion:(PingCompletion)completion;
 
-// === DNS Resolution (Real getaddrinfo) ===
+// === DNS Resolution (Simulated) ===
 - (void)resolveDNS:(NSString *)hostname completion:(DNSCompletion)completion;
 - (NSString *)reverseDNS:(NSString *)ipAddress;
 
-// === Live Throughput Monitoring ===
+// === Live Throughput Monitoring (Simulated) ===
 - (void)startThroughputMonitoring:(ThroughputCallback)callback
                          interval:(NSTimeInterval)interval;
 - (void)stopThroughputMonitoring;
 
-// === Port Checking (Real TCP connect) ===
+// === Port Checking (Simulated) ===
 - (void)checkPort:(NSInteger)port
            onHost:(NSString *)host
           timeout:(NSTimeInterval)timeout

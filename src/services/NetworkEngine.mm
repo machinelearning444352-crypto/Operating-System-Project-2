@@ -1,5 +1,5 @@
 #import "NetworkEngine.h"
-#import <CoreWLAN/CoreWLAN.h>
+#import "../WIFI/WiFiDriver.h"
 #import <SystemConfiguration/SystemConfiguration.h>
 #import <arpa/inet.h>
 #import <ifaddrs.h>
@@ -39,8 +39,7 @@
 // ============================================================================
 
 @interface NetworkEngine ()
-@property(nonatomic, strong) CWWiFiClient *wifiClient;
-@property(nonatomic, strong) CWInterface *wifiInterface;
+@property(nonatomic, strong) WiFiDriver *wifiDriver;
 @property(nonatomic, strong) NSTimer *throughputTimer;
 @property(nonatomic, assign) uint64_t lastBytesIn;
 @property(nonatomic, assign) uint64_t lastBytesOut;
@@ -62,8 +61,8 @@
 - (instancetype)init {
   self = [super init];
   if (self) {
-    self.wifiClient = [CWWiFiClient sharedWiFiClient];
-    self.wifiInterface = self.wifiClient.interface;
+    self.wifiDriver = [WiFiDriver sharedInstance];
+    [self.wifiDriver start];
     self.networkQueue = dispatch_queue_create("com.os.networkengine",
                                               DISPATCH_QUEUE_CONCURRENT);
   }
@@ -71,108 +70,59 @@
 }
 
 // ============================================================================
-#pragma mark - WiFi Control (Real CoreWLAN)
+#pragma mark - WiFi Control (Custom WiFi Driver — no CoreWLAN)
 // ============================================================================
 
 - (void)scanForNetworks:(NetworkScanCompletion)completion {
+  // Delegate to our from-scratch WiFi driver
   dispatch_async(self.networkQueue, ^{
+    // Trigger a scan and wait for results
+    [self.wifiDriver scanForNetworks];
+
+    // Wait briefly for scan to complete
+    [NSThread sleepForTimeInterval:2.0];
+
+    NSArray<WiFiScanResult *> *scanResults =
+        [self.wifiDriver cachedScanResults];
+    NSString *currentSSID = [self.wifiDriver currentSSID];
     NSMutableArray<WiFiNetworkEntry *> *entries = [NSMutableArray array];
-    NSString *currentSSID = self.wifiInterface.ssid;
 
-    // Try active scan first, fall back to cached
-    NSSet<CWNetwork *> *scanResults = nil;
-    NSError *scanError = nil;
+    for (WiFiScanResult *sr in scanResults) {
+      WiFiNetworkEntry *entry = [[WiFiNetworkEntry alloc] init];
+      entry.ssid = sr.ssid;
+      entry.bssid = sr.bssidString ?: @"Unknown";
+      entry.rssi = sr.rssi;
+      entry.noiseMeasurement = sr.noise;
+      entry.channel = sr.channel;
+      entry.isCurrentNetwork = [sr.ssid isEqualToString:currentSSID];
 
-    @try {
-      scanResults = [self.wifiInterface scanForNetworksWithName:nil
-                                                          error:&scanError];
-    } @catch (NSException *e) {
-      NSLog(@"[NetworkEngine] Active scan exception: %@", e.reason);
+      // Band
+      entry.band = [sr bandString];
+
+      // Security
+      entry.securityType = [sr securityString];
+      entry.isSecured = (sr.security != WiFiSecurityOpen);
+
+      // PHY
+      entry.phyMode = [sr phyModeString];
+
+      [entries addObject:entry];
     }
 
-    if (!scanResults || scanResults.count == 0) {
-      scanResults = [self.wifiInterface cachedScanResults];
-    }
-
-    if (scanResults) {
-      // Sort by signal strength
-      NSArray *sorted = [scanResults.allObjects
-          sortedArrayUsingComparator:^NSComparisonResult(CWNetwork *a,
-                                                         CWNetwork *b) {
-            return [@(b.rssiValue) compare:@(a.rssiValue)];
-          }];
-
-      for (CWNetwork *net in sorted) {
-        if (net.ssid.length == 0)
-          continue;
-
-        WiFiNetworkEntry *entry = [[WiFiNetworkEntry alloc] init];
-        entry.ssid = net.ssid;
-        entry.bssid = net.bssid ?: @"Unknown";
-        entry.rssi = net.rssiValue;
-        entry.noiseMeasurement = net.noiseMeasurement;
-        entry.channel = net.wlanChannel.channelNumber;
-        entry.isCurrentNetwork = [net.ssid isEqualToString:currentSSID];
-        entry.rawNetwork = net;
-
-        // Determine band from channel
-        if (net.wlanChannel.channelNumber <= 14) {
-          entry.band = @"2.4 GHz";
-        } else if (net.wlanChannel.channelNumber <= 177) {
-          entry.band = @"5 GHz";
-        } else {
-          entry.band = @"6 GHz";
-        }
-
-        // Determine security
-        entry.isSecured = NO;
-        if ([net supportsSecurity:kCWSecurityWPA3Personal] ||
-            [net supportsSecurity:kCWSecurityWPA3Enterprise]) {
-          entry.securityType = @"WPA3";
-          entry.isSecured = YES;
-        } else if ([net supportsSecurity:kCWSecurityWPA2Personal] ||
-                   [net supportsSecurity:kCWSecurityWPA2Enterprise]) {
-          entry.securityType = @"WPA2";
-          entry.isSecured = YES;
-        } else if ([net supportsSecurity:kCWSecurityWPAPersonal] ||
-                   [net supportsSecurity:kCWSecurityWPAEnterprise]) {
-          entry.securityType = @"WPA";
-          entry.isSecured = YES;
-        } else if ([net supportsSecurity:kCWSecurityWEP]) {
-          entry.securityType = @"WEP";
-          entry.isSecured = YES;
-        } else {
-          entry.securityType = @"Open";
-        }
-
-        // PHY mode
-        NSInteger band = net.wlanChannel.channelBand;
-        if (band == kCWChannelBand6GHz) {
-          entry.phyMode = @"802.11ax (Wi-Fi 6E)";
-        } else if (net.wlanChannel.channelNumber > 14) {
-          entry.phyMode = @"802.11ac/ax";
-        } else {
-          entry.phyMode = @"802.11n/ax";
-        }
-
-        [entries addObject:entry];
-      }
-    }
-
-    // Fallback: use system command if CoreWLAN scan failed
+    // If driver scan returned nothing, fall back to airport system command
     if (entries.count == 0) {
       [self scanWithSystemCommand:entries];
     }
 
     dispatch_async(dispatch_get_main_queue(), ^{
       if (completion)
-        completion(entries, scanError);
+        completion(entries, nil);
     });
   });
 }
 
 - (void)scanWithSystemCommand:(NSMutableArray<WiFiNetworkEntry *> *)entries {
-  NSString *ifName = self.wifiInterface.interfaceName ?: @"en0";
+  NSString *ifName = self.wifiDriver.hal.interfaceName ?: @"en0";
 
   // Use airport utility for detailed scan
   NSTask *task = [[NSTask alloc] init];
@@ -266,184 +216,80 @@
 - (void)connectToNetwork:(NSString *)ssid
                 password:(NSString *)password
               completion:(NetworkConnectCompletion)completion {
+  // Use our custom WiFi driver for connection
+  [self.wifiDriver connectToNetwork:ssid password:password];
+
+  // Wait for connection result
   dispatch_async(self.networkQueue, ^{
-    NSString *ifName = self.wifiInterface.interfaceName ?: @"en0";
-
-    // Method 1: Try CWInterface associateToNetwork (requires scanning first)
-    NSError *scanError = nil;
-    NSSet<CWNetwork *> *results =
-        [self.wifiInterface scanForNetworksWithName:ssid error:&scanError];
-
-    if (results.count > 0) {
-      CWNetwork *target = results.anyObject;
-      NSError *connectError = nil;
-      BOOL success = [self.wifiInterface associateToNetwork:target
-                                                   password:password
-                                                      error:&connectError];
-
-      if (success) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-          if (completion)
-            completion(YES, nil);
-        });
-        return;
-      }
-      NSLog(@"[NetworkEngine] CoreWLAN connect failed: %@",
-            connectError.localizedDescription);
-    }
-
-    // Method 2: Fall back to networksetup command
-    NSTask *task = [[NSTask alloc] init];
-    task.executableURL = [NSURL fileURLWithPath:@"/usr/sbin/networksetup"];
-    task.arguments = @[ @"-setairportnetwork", ifName, ssid, password ];
-    NSPipe *outPipe = [NSPipe pipe];
-    NSPipe *errPipe = [NSPipe pipe];
-    task.standardOutput = outPipe;
-    task.standardError = errPipe;
-
-    NSError *launchError = nil;
-    [task launchAndReturnError:&launchError];
-    [task waitUntilExit];
-
-    NSData *outData = [outPipe.fileHandleForReading readDataToEndOfFile];
-    NSData *errData = [errPipe.fileHandleForReading readDataToEndOfFile];
-    NSString *outStr = [[NSString alloc] initWithData:outData
-                                             encoding:NSUTF8StringEncoding];
-    NSString *errStr = [[NSString alloc] initWithData:errData
-                                             encoding:NSUTF8StringEncoding];
-
-    BOOL success = (task.terminationStatus == 0) &&
-                   ![outStr containsString:@"Error"] &&
-                   ![outStr containsString:@"Failed"] &&
-                   ![outStr containsString:@"Could not find"];
-
-    NSString *errorMsg = nil;
-    if (!success) {
-      errorMsg = errStr.length > 0 ? errStr : outStr;
-      if (errorMsg.length == 0)
-        errorMsg = @"Incorrect password or connection failed";
-    }
-
+    [NSThread sleepForTimeInterval:3.0];
+    BOOL connected = [self.wifiDriver isConnected];
     dispatch_async(dispatch_get_main_queue(), ^{
       if (completion)
-        completion(success, errorMsg);
+        completion(connected, connected ? nil : @"Connection failed");
     });
   });
 }
 
 - (void)connectToOpenNetwork:(NSString *)ssid
                   completion:(NetworkConnectCompletion)completion {
+  [self.wifiDriver connectToOpenNetwork:ssid];
+
   dispatch_async(self.networkQueue, ^{
-    // Scan for the specific network
-    NSError *scanError = nil;
-    NSSet<CWNetwork *> *results =
-        [self.wifiInterface scanForNetworksWithName:ssid error:&scanError];
-
-    if (results.count > 0) {
-      CWNetwork *target = results.anyObject;
-      NSError *connectError = nil;
-      BOOL success = [self.wifiInterface associateToNetwork:target
-                                                   password:nil
-                                                      error:&connectError];
-
-      dispatch_async(dispatch_get_main_queue(), ^{
-        if (completion)
-          completion(success, connectError.localizedDescription);
-      });
-    } else {
-      dispatch_async(dispatch_get_main_queue(), ^{
-        if (completion)
-          completion(NO, @"Network not found");
-      });
-    }
+    [NSThread sleepForTimeInterval:3.0];
+    BOOL connected = [self.wifiDriver isConnected];
+    dispatch_async(dispatch_get_main_queue(), ^{
+      if (completion)
+        completion(connected, connected ? nil : @"Network not found");
+    });
   });
 }
 
 - (void)disconnectFromCurrentNetwork {
-  [self.wifiInterface disassociate];
+  [self.wifiDriver disconnect];
 }
 
 - (BOOL)isWiFiEnabled {
-  return self.wifiInterface.powerOn;
+  return [self.wifiDriver isPowered];
 }
 
 - (void)setWiFiEnabled:(BOOL)enabled {
-  NSError *error = nil;
-  [self.wifiClient.interface setPower:enabled error:&error];
-  if (error) {
-    NSLog(@"[NetworkEngine] Failed to set WiFi power: %@",
-          error.localizedDescription);
-  }
+  [self.wifiDriver setPower:enabled];
 }
 
 - (NSString *)currentSSID {
-  return self.wifiInterface.ssid;
+  return [self.wifiDriver currentSSID];
 }
 
 - (WiFiConnectionDetails *)currentConnectionDetails {
   WiFiConnectionDetails *details = [[WiFiConnectionDetails alloc] init];
 
-  CWInterface *iface = self.wifiInterface;
-  details.ssid = iface.ssid ?: @"Not connected";
-  details.bssid = iface.bssid ?: @"—";
-  details.rssi = iface.rssiValue;
-  details.noise = iface.noiseMeasurement;
-  details.txRate = iface.transmitRate;
-  details.channel = iface.wlanChannel.channelNumber;
+  // Use custom WiFi driver for connection info
+  WiFiConnectionState *connState = [self.wifiDriver connectionInfo];
+  WiFiInterfaceInfo *ifInfo = [self.wifiDriver interfaceInfo];
 
-  // Band
-  if (iface.wlanChannel.channelBand == kCWChannelBand2GHz) {
-    details.band = @"2.4 GHz";
-  } else if (iface.wlanChannel.channelBand == kCWChannelBand5GHz) {
-    details.band = @"5 GHz";
+  if (connState && connState.associatedNetwork) {
+    details.ssid = connState.associatedNetwork.ssid;
+    details.bssid = connState.associatedNetwork.bssidString ?: @"—";
+    details.rssi = connState.associatedNetwork.rssi;
+    details.noise = connState.associatedNetwork.noise;
+    details.txRate = connState.txRate;
+    details.channel = connState.associatedNetwork.channel;
+    details.band = [connState.associatedNetwork bandString];
+    details.securityType = [connState.associatedNetwork securityString];
   } else {
-    details.band = @"6 GHz";
+    details.ssid = @"Not connected";
+    details.bssid = @"—";
+    details.band = @"—";
+    details.securityType = @"—";
   }
 
-  // Security
-  if (iface.security == kCWSecurityWPA3Personal ||
-      iface.security == kCWSecurityWPA3Enterprise) {
-    details.securityType = @"WPA3";
-  } else if (iface.security == kCWSecurityWPA2Personal ||
-             iface.security == kCWSecurityWPA2Enterprise) {
-    details.securityType = @"WPA2";
-  } else if (iface.security == kCWSecurityWPAPersonal) {
-    details.securityType = @"WPA";
-  } else if (iface.security == kCWSecurityNone) {
-    details.securityType = @"Open";
-  } else {
-    details.securityType = @"Unknown";
-  }
-
-  // IP from getifaddrs
-  NSString *ifName = iface.interfaceName ?: @"en0";
-  struct ifaddrs *ifaddr, *ifa;
-  if (getifaddrs(&ifaddr) == 0) {
-    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
-      if (strcmp(ifa->ifa_name, [ifName UTF8String]) != 0)
-        continue;
-      if (ifa->ifa_addr->sa_family == AF_INET) {
-        char ip[INET_ADDRSTRLEN];
-        char mask[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr, ip,
-                  sizeof(ip));
-        inet_ntop(AF_INET, &((struct sockaddr_in *)ifa->ifa_netmask)->sin_addr,
-                  mask, sizeof(mask));
-        details.ipAddress = [NSString stringWithUTF8String:ip];
-        details.subnetMask = [NSString stringWithUTF8String:mask];
-      }
-    }
-    freeifaddrs(ifaddr);
-  }
-
-  // Router/Gateway
-  details.routerIP = [self defaultGateway];
-
-  // DNS servers
-  details.dnsServers = [self dnsServers];
-
-  // MAC address
-  details.macAddress = [self macAddressForInterface:ifName];
+  // IP info from interface
+  details.ipAddress = ifInfo.ipv4 ?: @"—";
+  details.subnetMask = ifInfo.netmask ?: @"—";
+  details.routerIP = ifInfo.gateway ?: [self defaultGateway];
+  details.dnsServers = ifInfo.dns ?: [self dnsServers];
+  details.macAddress =
+      ifInfo.hardwareMAC ?: [self macAddressForInterface:@"en0"];
 
   return details;
 }

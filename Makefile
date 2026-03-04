@@ -4,7 +4,7 @@ CXX = clang++
 OBJCXX = clang++
 
 # Frameworks
-FRAMEWORKS = -framework Cocoa -framework WebKit -framework IOKit -framework AVFoundation -framework UniformTypeIdentifiers -framework CoreWLAN -framework QuartzCore -framework Metal -framework SystemConfiguration -framework Security
+FRAMEWORKS = -framework Cocoa -framework WebKit -framework IOKit -framework AVFoundation -framework UniformTypeIdentifiers -framework QuartzCore -framework Metal -framework SystemConfiguration -framework Security
 
 # Compiler flags
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2
@@ -16,6 +16,7 @@ VIEWS_DIR = $(SRC_DIR)/views
 WINDOWS_DIR = $(SRC_DIR)/windows
 HELPERS_DIR = $(SRC_DIR)/helpers
 SERVICES_DIR = $(SRC_DIR)/services
+WIFI_DIR = $(SRC_DIR)/WIFI
 
 # Output
 BUILD_DIR = build
@@ -102,7 +103,15 @@ SERVICE_SOURCES = \
 	$(SERVICES_DIR)/GPUArchitectureManager.mm \
 	$(SERVICES_DIR)/UniversalFileTypeEngine.mm
 
-ALL_SOURCES = $(MAIN_SRC) $(APP_DELEGATE_SRC) $(VIEW_SOURCES) $(WINDOW_SOURCES) $(HELPER_SOURCES) $(SERVICE_SOURCES)
+WIFI_SOURCES = \
+	$(WIFI_DIR)/WiFiTypes.mm \
+	$(WIFI_DIR)/WiFiHAL.mm \
+	$(WIFI_DIR)/WiFi80211.mm \
+	$(WIFI_DIR)/WiFiScanner.mm \
+	$(WIFI_DIR)/WiFiConnection.mm \
+	$(WIFI_DIR)/WiFiDriver.mm
+
+ALL_SOURCES = $(MAIN_SRC) $(APP_DELEGATE_SRC) $(VIEW_SOURCES) $(WINDOW_SOURCES) $(HELPER_SOURCES) $(SERVICE_SOURCES) $(WIFI_SOURCES)
 
 # Object files
 OBJECTS = $(patsubst $(SRC_DIR)/%.mm,$(BUILD_DIR)/%.o,$(ALL_SOURCES))
@@ -117,6 +126,7 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/windows
 	mkdir -p $(BUILD_DIR)/helpers
 	mkdir -p $(BUILD_DIR)/services
+	mkdir -p $(BUILD_DIR)/WIFI
 
 # Compile Objective-C++ files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.mm | $(BUILD_DIR)

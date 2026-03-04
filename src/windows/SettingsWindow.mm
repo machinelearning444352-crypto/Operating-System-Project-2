@@ -1,7 +1,7 @@
 #import "SettingsWindow.h"
 #import "../helpers/SystemInfoHelper.h"
 #import "../services/UserManager.h"
-#import <CoreWLAN/CoreWLAN.h>
+// CoreWLAN removed — using custom WiFi driver
 #import <IOKit/IOKitLib.h>
 #import <IOKit/ps/IOPSKeys.h>
 #import <IOKit/ps/IOPowerSources.h>
