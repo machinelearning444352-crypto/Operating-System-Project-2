@@ -306,6 +306,9 @@
 
   self.realWebView = [[WKWebView alloc] initWithFrame:pageFrame];
   self.realWebView.navigationDelegate = self;
+  self.realWebView.customUserAgent =
+      @"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+      @"(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
   self.realWebView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
   self.realWebView.hidden = YES;
   [root addSubview:self.realWebView];
@@ -439,7 +442,7 @@
     if ([urlString containsString:@" "] || ![urlString containsString:@"."]) {
       normalizedURL = [NSString
           stringWithFormat:
-              @"virtualos://search?q=%@",
+              @"https://www.google.com/search?q=%@",
               [urlString stringByAddingPercentEncodingWithAllowedCharacters:
                              [NSCharacterSet URLQueryAllowedCharacterSet]]];
     } else {
@@ -508,7 +511,11 @@
 
 - (void)reloadSelectedTab {
   SafariVirtualTab *t = self.tabs[self.activeTabIndex];
-  [self loadURL:t.url];
+  if ([t.url hasPrefix:@"http"]) {
+    [self.realWebView reload];
+  } else {
+    [self loadURL:t.url];
+  }
 }
 
 #pragma mark - Virtual Page Rendering System
@@ -924,7 +931,16 @@
     didFinishNavigation:(WKNavigation *)navigation {
   self.progressIndicator.hidden = YES;
   SafariVirtualTab *t = self.tabs[self.activeTabIndex];
-  t.title = webView.title;
+
+  if (webView.title.length > 0) {
+    t.title = webView.title;
+  }
+
+  if (webView.URL.absoluteString.length > 0) {
+    t.url = webView.URL.absoluteString;
+    self.urlField.stringValue = t.url;
+  }
+
   [self renderTabs];
 }
 

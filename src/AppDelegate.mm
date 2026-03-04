@@ -1,20 +1,30 @@
 #import "AppDelegate.h"
 #import "services/UserManager.h"
 #import "windows/AboutThisMacWindow.h"
+#import "windows/AccessibilityWindow.h"
+#import "windows/ActivityMonitorWindow.h"
 #import "windows/AntivirusWindow.h"
+#import "windows/AutomatorWindow.h"
 #import "windows/CalendarWindow.h"
+#import "windows/ConsoleWindow.h"
+#import "windows/ControlCenterWindow.h"
+#import "windows/DiskUtilityWindow.h"
 #import "windows/FinderWindow.h"
 #import "windows/ForceQuitWindow.h"
+#import "windows/LauncherWindow.h"
 #import "windows/LoginWindow.h"
 #import "windows/MailWindow.h"
 #import "windows/MessagesWindow.h"
 #import "windows/MusicWindow.h"
+#import "windows/NetworkUtilityWindow.h"
 #import "windows/NotesWindow.h"
+#import "windows/NotificationCenterWindow.h"
 #import "windows/PhotosWindow.h"
 #import "windows/SafariWindow.h"
 #import "windows/SecurityWindow.h"
 #import "windows/SettingsWindow.h"
 #import "windows/SetupWizardWindow.h"
+#import "windows/SoftwareUpdateWindow.h"
 #import "windows/TerminalWindow.h"
 #import "windows/WiFiWindow.h"
 #include <iostream>
@@ -60,18 +70,17 @@
 
 - (void)loadDesktopEnvironment {
   std::cout << "[DEBUG] Starting loadDesktopEnvironment" << std::endl;
-  
+
   // Create a normal windowed application (not full-screen)
   NSRect windowRect = NSMakeRect(100, 100, 1280, 800);
 
-  self.mainWindow =
-      [[NSWindow alloc] initWithContentRect:windowRect
-                                  styleMask:NSWindowStyleMaskTitled |
-                                            NSWindowStyleMaskClosable |
-                                            NSWindowStyleMaskMiniaturizable |
-                                            NSWindowStyleMaskResizable
-                                    backing:NSBackingStoreBuffered
-                                      defer:NO];
+  self.mainWindow = [[NSWindow alloc]
+      initWithContentRect:windowRect
+                styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                          NSWindowStyleMaskMiniaturizable |
+                          NSWindowStyleMaskResizable
+                  backing:NSBackingStoreBuffered
+                    defer:NO];
 
   self.mainWindow.title = @"VirtualOS Desktop";
   self.mainWindow.minSize = NSMakeSize(800, 600);
@@ -108,7 +117,8 @@
                                dockWidth, dockHeight);
   self.dockView = [[DockView alloc] initWithFrame:dockRect];
   self.dockView.delegate = self;
-  self.dockView.autoresizingMask = NSViewMinXMargin | NSViewMaxXMargin | NSViewMaxYMargin;
+  self.dockView.autoresizingMask =
+      NSViewMinXMargin | NSViewMaxXMargin | NSViewMaxYMargin;
   [contentView addSubview:self.dockView];
 
   std::cout << "[DEBUG] DockView initialized and added" << std::endl;
@@ -122,7 +132,8 @@
       [[UserManager sharedInstance] currentUsername] ?: @"Unknown";
   std::cout << "[macOS-Like OS] Desktop ready for user: " <<
       [username UTF8String] << std::endl;
-  std::cout << "[DEBUG] loadDesktopEnvironment complete, entering run loop" << std::endl;
+  std::cout << "[DEBUG] loadDesktopEnvironment complete, entering run loop"
+            << std::endl;
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:
@@ -571,6 +582,36 @@
     [[WiFiWindow sharedInstance] showWindow];
   } else if ([appName isEqualToString:@"Antivirus"]) {
     [[AntivirusWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Activity Monitor"]) {
+    [[ActivityMonitorWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Launcher"] ||
+             [appName isEqualToString:@"Spotlight"]) {
+    [[LauncherWindow sharedInstance] toggle];
+  } else if ([appName isEqualToString:@"Disk Utility"]) {
+    [[DiskUtilityWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Console"]) {
+    [[ConsoleWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Network Utility"]) {
+    [[NetworkUtilityWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Automator"]) {
+    [[AutomatorWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Accessibility"]) {
+    [[AccessibilityWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Software Update"]) {
+    SoftwareUpdateWindow *sw = [[SoftwareUpdateWindow alloc] init];
+    [sw showWindow];
+  } else if ([appName isEqualToString:@"Security"]) {
+    [[SecurityWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Force Quit"]) {
+    [[ForceQuitWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"About This Mac"] ||
+             [appName isEqualToString:@"About"]) {
+    [[AboutThisMacWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Notification Center"] ||
+             [appName isEqualToString:@"Notifications"]) {
+    [[NotificationCenterWindow sharedInstance] toggle];
+  } else if ([appName isEqualToString:@"Control Center"]) {
+    [[ControlCenterWindow sharedInstance] toggle];
   } else {
     NSAlert *alert = [[NSAlert alloc] init];
     alert.messageText = appName;

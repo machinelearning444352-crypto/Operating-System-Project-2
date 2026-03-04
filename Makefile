@@ -56,7 +56,10 @@ WINDOW_SOURCES = \
 	$(WINDOWS_DIR)/NetworkUtilityWindow.mm \
 	$(WINDOWS_DIR)/AutomatorWindow.mm \
 	$(WINDOWS_DIR)/AccessibilityWindow.mm \
-	$(WINDOWS_DIR)/LoginWindow.mm
+	$(WINDOWS_DIR)/LoginWindow.mm \
+	$(WINDOWS_DIR)/LauncherWindow.mm \
+	$(WINDOWS_DIR)/NotificationCenterWindow.mm \
+	$(WINDOWS_DIR)/ControlCenterWindow.mm
 
 HELPER_SOURCES = \
 	$(HELPERS_DIR)/SystemInfoHelper.mm \

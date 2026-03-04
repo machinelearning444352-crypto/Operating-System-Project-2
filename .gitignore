@@ -14,3 +14,7 @@ DerivedData/
 # OS
 .DS_Store
 Thumbs.db
+
+# CEF binaries (too large for GitHub)
+cef_dist/
+build/
