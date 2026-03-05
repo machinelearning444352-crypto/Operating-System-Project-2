@@ -17,6 +17,8 @@ WINDOWS_DIR = $(SRC_DIR)/windows
 HELPERS_DIR = $(SRC_DIR)/helpers
 SERVICES_DIR = $(SRC_DIR)/services
 WIFI_DIR = $(SRC_DIR)/WIFI
+BT_DIR = $(SRC_DIR)/BLUETOOTH
+USB_DIR = $(SRC_DIR)/USB
 
 # Output
 BUILD_DIR = build
@@ -111,7 +113,16 @@ WIFI_SOURCES = \
 	$(WIFI_DIR)/WiFiConnection.mm \
 	$(WIFI_DIR)/WiFiDriver.mm
 
-ALL_SOURCES = $(MAIN_SRC) $(APP_DELEGATE_SRC) $(VIEW_SOURCES) $(WINDOW_SOURCES) $(HELPER_SOURCES) $(SERVICE_SOURCES) $(WIFI_SOURCES)
+BT_SOURCES = \
+	$(BT_DIR)/BluetoothTypes.mm \
+	$(BT_DIR)/BluetoothHCI.mm \
+	$(BT_DIR)/BluetoothDriver.mm
+
+USB_SOURCES = \
+	$(USB_DIR)/USBTypes.mm \
+	$(USB_DIR)/USBDriver.mm
+
+ALL_SOURCES = $(MAIN_SRC) $(APP_DELEGATE_SRC) $(VIEW_SOURCES) $(WINDOW_SOURCES) $(HELPER_SOURCES) $(SERVICE_SOURCES) $(WIFI_SOURCES) $(BT_SOURCES) $(USB_SOURCES)
 
 # Object files
 OBJECTS = $(patsubst $(SRC_DIR)/%.mm,$(BUILD_DIR)/%.o,$(ALL_SOURCES))
@@ -127,6 +138,8 @@ $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)/helpers
 	mkdir -p $(BUILD_DIR)/services
 	mkdir -p $(BUILD_DIR)/WIFI
+	mkdir -p $(BUILD_DIR)/BLUETOOTH
+	mkdir -p $(BUILD_DIR)/USB
 
 # Compile Objective-C++ files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.mm | $(BUILD_DIR)
