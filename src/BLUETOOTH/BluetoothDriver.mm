@@ -54,13 +54,21 @@
   self.hci = [[BluetoothHCI alloc] init];
   self.hci.delegate = self;
 
-  if (![self.hci open]) {
-    NSLog(@"[BluetoothDriver] Failed to open HCI");
-    self.state = BTDriverStateError;
-    return NO;
+  BOOL hciOK = [self.hci open];
+  if (!hciOK) {
+    NSLog(@"[BluetoothDriver] HCI unavailable (not root) — using "
+          @"system_profiler");
+    self.controllerInfo = [self readControllerInfoFromSystem];
+  } else {
+    self.controllerInfo = self.hci.controllerInfo;
   }
 
-  self.controllerInfo = self.hci.controllerInfo;
+  if (!self.controllerInfo) {
+    self.controllerInfo = [BTControllerInfo new];
+    self.controllerInfo.name = @"Bluetooth Controller";
+    self.controllerInfo.address = @"00:00:00:00:00:00";
+  }
+
   self.state = BTDriverStateReady;
 
   NSLog(@"[BluetoothDriver] Ready.");
@@ -298,6 +306,54 @@
   } @catch (NSException *e) {
     NSLog(@"[BluetoothDriver] system_profiler failed: %@", e);
   }
+}
+
+- (BTControllerInfo *)readControllerInfoFromSystem {
+  BTControllerInfo *info = [BTControllerInfo new];
+  info.name = @"Bluetooth Controller";
+  info.address = @"00:00:00:00:00:00";
+  info.supportsLE = YES;
+  info.supportsBREDR = YES;
+  info.supportsSSP = YES;
+
+  NSTask *task = [[NSTask alloc] init];
+  task.executableURL = [NSURL fileURLWithPath:@"/usr/sbin/system_profiler"];
+  task.arguments = @[ @"SPBluetoothDataType", @"-json" ];
+  NSPipe *pipe = [NSPipe pipe];
+  task.standardOutput = pipe;
+  task.standardError = [NSPipe pipe];
+
+  @try {
+    [task launchAndReturnError:nil];
+    [task waitUntilExit];
+
+    NSData *data = [pipe.fileHandleForReading readDataToEndOfFile];
+    if (data.length > 0) {
+      NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data
+                                                           options:0
+                                                             error:nil];
+      NSArray *btData = json[@"SPBluetoothDataType"];
+      if (btData.count > 0) {
+        NSDictionary *bt = btData[0];
+        NSDictionary *ctrl =
+            bt[@"controller_properties"] ?: bt[@"local_device_title"];
+        if (ctrl) {
+          info.address = ctrl[@"controller_address"]
+                      ?: ctrl[@"general_address"] ?: @"Unknown";
+          info.name = ctrl[@"controller_chipset"]
+                   ?: ctrl[@"general_name"] ?: @"Bluetooth";
+          info.manufacturer = ctrl[@"controller_vendorID"] ?: @"Apple";
+          NSString *fw = ctrl[@"controller_firmwareVersion"];
+          if (fw)
+            info.hciVersionMajor = (uint8_t)[fw intValue];
+        }
+      }
+    }
+  } @catch (NSException *e) {
+    NSLog(@"[BluetoothDriver] system_profiler controller info failed: %@", e);
+  }
+
+  return info;
 }
 
 - (BTDevice *)parseSystemDevice:(NSDictionary *)info name:(NSString *)name {

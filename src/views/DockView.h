@@ -6,13 +6,15 @@
 
 @interface DockView : NSView
 
-@property (nonatomic, strong) NSArray *dockItems;
-@property (nonatomic, assign) NSInteger hoveredItem;
-@property (nonatomic, assign) NSInteger selectedItem;
-@property (nonatomic, weak) id<DockViewDelegate> delegate;
+@property(nonatomic, strong) NSArray *dockItems;
+@property(nonatomic, assign) NSInteger hoveredItem;
+@property(nonatomic, assign) NSInteger selectedItem;
+@property(nonatomic, weak) id<DockViewDelegate> delegate;
 
 - (void)selectItemAtIndex:(NSInteger)index;
 - (void)deselectAllItems;
 - (void)bounceItemAtIndex:(NSInteger)index;
+- (void)markAppRunning:(NSString *)appName;
+- (void)markAppStopped:(NSString *)appName;
 
 @end

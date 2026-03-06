@@ -221,37 +221,52 @@
 - (BOOL)setPower:(BOOL)on {
   NSLog(@"[WiFiHAL] Setting power: %@", on ? @"ON" : @"OFF");
 
-  // Use ifconfig via BSD ioctl to bring the interface up/down
+  // Try ioctl first (requires root)
   int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sockfd < 0)
-    return NO;
+  if (sockfd >= 0) {
+    struct ifreq ifr;
+    memset(&ifr, 0, sizeof(ifr));
+    strncpy(ifr.ifr_name, self.interfaceName.UTF8String, IFNAMSIZ - 1);
 
-  struct ifreq ifr;
-  memset(&ifr, 0, sizeof(ifr));
-  strncpy(ifr.ifr_name, self.interfaceName.UTF8String, IFNAMSIZ - 1);
+    if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) >= 0) {
+      if (on) {
+        ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
+      } else {
+        ifr.ifr_flags &= ~(IFF_UP | IFF_RUNNING);
+      }
 
-  // Get current flags
-  if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0) {
+      if (ioctl(sockfd, SIOCSIFFLAGS, &ifr) == 0) {
+        close(sockfd);
+        self.isPowered = on;
+        [self.delegate halPowerStateChanged:on];
+        return YES;
+      }
+    }
     close(sockfd);
+  }
+
+  // Fallback: use networksetup CLI (works without root)
+  NSLog(@"[WiFiHAL] ioctl requires root — using networksetup fallback");
+  NSTask *task = [[NSTask alloc] init];
+  task.executableURL = [NSURL fileURLWithPath:@"/usr/sbin/networksetup"];
+  task.arguments =
+      @[ @"-setairportpower", self.interfaceName, on ? @"on" : @"off" ];
+  task.standardOutput = [NSPipe pipe];
+  task.standardError = [NSPipe pipe];
+
+  @try {
+    [task launchAndReturnError:nil];
+    [task waitUntilExit];
+    BOOL success = (task.terminationStatus == 0);
+    if (success) {
+      self.isPowered = on;
+      [self.delegate halPowerStateChanged:on];
+    }
+    return success;
+  } @catch (NSException *e) {
+    NSLog(@"[WiFiHAL] networksetup power control failed: %@", e);
     return NO;
   }
-
-  if (on) {
-    ifr.ifr_flags |= (IFF_UP | IFF_RUNNING);
-  } else {
-    ifr.ifr_flags &= ~(IFF_UP | IFF_RUNNING);
-  }
-
-  BOOL success = (ioctl(sockfd, SIOCSIFFLAGS, &ifr) == 0);
-  close(sockfd);
-
-  if (success) {
-    self.isPowered = on;
-    [self.delegate halPowerStateChanged:on];
-  } else {
-    NSLog(@"[WiFiHAL] ioctl SIOCSIFFLAGS failed (requires root)");
-  }
-  return success;
 }
 
 - (BOOL)getPowerState {
@@ -400,8 +415,7 @@
 #pragma mark - Raw Socket I/O
 
 - (int)openRawSocket {
-  // Open a raw socket on the WiFi interface for frame injection/capture
-  // Note: BPF (Berkeley Packet Filter) is the macOS mechanism
+  // Open a BPF device for raw frame capture (requires root privileges)
   int fd = -1;
   for (int i = 0; i < 10; i++) {
     char bpfPath[32];
@@ -411,11 +425,11 @@
       break;
   }
   if (fd < 0) {
-    NSLog(@"[WiFiHAL] Cannot open BPF device (requires root)");
+    NSLog(@"[WiFiHAL] BPF unavailable (not running as root) — using CLI "
+          @"fallbacks");
     return -1;
   }
 
-  // Bind to interface
   struct ifreq ifr;
   memset(&ifr, 0, sizeof(ifr));
   strncpy(ifr.ifr_name, self.interfaceName.UTF8String, IFNAMSIZ - 1);
@@ -425,15 +439,10 @@
     return -1;
   }
 
-  // Enable immediate mode
   int val = 1;
   ioctl(fd, BIOCIMMEDIATE, &val);
-
-  // Set buffer size
   int bufSize = 65536;
   ioctl(fd, BIOCSBLEN, &bufSize);
-
-  // Enable promiscuous mode
   ioctl(fd, BIOCPROMISC, NULL);
 
   NSLog(@"[WiFiHAL] Opened BPF device fd=%d for %@", fd, self.interfaceName);

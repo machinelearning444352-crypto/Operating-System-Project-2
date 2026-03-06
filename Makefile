@@ -66,7 +66,8 @@ WINDOW_SOURCES = \
 
 HELPER_SOURCES = \
 	$(HELPERS_DIR)/SystemInfoHelper.mm \
-	$(HELPERS_DIR)/GlassmorphismHelper.mm
+	$(HELPERS_DIR)/GlassmorphismHelper.mm \
+	$(HELPERS_DIR)/WindowChromeHelper.mm
 
 SERVICE_SOURCES = \
 	$(SERVICES_DIR)/UserManager.mm \
