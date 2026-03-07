@@ -242,10 +242,6 @@ static const CGFloat kMenuItemHoverRadius = 4.0;
   xRight -= kStatusIconSpacing;
   xRight = [self drawSoundIcon:xRight barH:barH];
 
-  // Battery
-  xRight -= kStatusIconSpacing;
-  xRight = [self drawBattery:xRight barH:barH];
-
   // WiFi
   xRight -= kStatusIconSpacing;
   xRight = [self drawWiFiIcon:xRight barH:barH];

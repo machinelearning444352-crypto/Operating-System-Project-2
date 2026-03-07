@@ -52,7 +52,11 @@ static const CGFloat kDockSeparatorWidth = 1.0;
         @"name" : @"Finder",
         @"path" : @"/System/Library/CoreServices/Finder.app"
       },
-      @{@"name" : @"Safari", @"path" : @"/Applications/Safari.app"},
+      @{
+        @"name" : @"Google Chrome",
+        @"path" : @"/Applications/Google Chrome.app",
+        @"altPath" : @"/Applications/Chromium.app"
+      },
       @{@"name" : @"Messages", @"path" : @"/System/Applications/Messages.app"},
       @{@"name" : @"Mail", @"path" : @"/System/Applications/Mail.app"},
       @{@"name" : @"Music", @"path" : @"/System/Applications/Music.app"},

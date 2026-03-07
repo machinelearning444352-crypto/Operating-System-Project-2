@@ -6,6 +6,7 @@
 #import "windows/AntivirusWindow.h"
 #import "windows/AutomatorWindow.h"
 #import "windows/CalendarWindow.h"
+#import "windows/ChromeWindow.h"
 #import "windows/ConsoleWindow.h"
 #import "windows/ControlCenterWindow.h"
 #import "windows/DiskUtilityWindow.h"
@@ -20,7 +21,6 @@
 #import "windows/NotesWindow.h"
 #import "windows/NotificationCenterWindow.h"
 #import "windows/PhotosWindow.h"
-#import "windows/SafariWindow.h"
 #import "windows/SecurityWindow.h"
 #import "windows/SettingsWindow.h"
 #import "windows/SetupWizardWindow.h"
@@ -555,8 +555,10 @@
 
   if ([appName isEqualToString:@"Finder"]) {
     [[FinderWindow sharedInstance] showWindow];
-  } else if ([appName isEqualToString:@"Safari"]) {
-    [[SafariWindow sharedInstance] showWindow];
+  } else if ([appName isEqualToString:@"Safari"] ||
+             [appName isEqualToString:@"Chrome"] ||
+             [appName isEqualToString:@"Google Chrome"]) {
+    [[ChromeWindow sharedInstance] showWindow];
   } else if ([appName isEqualToString:@"Mail"]) {
     [[MailWindow sharedInstance] showWindow];
   } else if ([appName isEqualToString:@"Messages"]) {

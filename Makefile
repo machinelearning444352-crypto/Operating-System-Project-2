@@ -62,7 +62,8 @@ WINDOW_SOURCES = \
 	$(WINDOWS_DIR)/LoginWindow.mm \
 	$(WINDOWS_DIR)/LauncherWindow.mm \
 	$(WINDOWS_DIR)/NotificationCenterWindow.mm \
-	$(WINDOWS_DIR)/ControlCenterWindow.mm
+	$(WINDOWS_DIR)/ControlCenterWindow.mm \
+	$(WINDOWS_DIR)/ChromeWindow.mm
 
 HELPER_SOURCES = \
 	$(HELPERS_DIR)/SystemInfoHelper.mm \
