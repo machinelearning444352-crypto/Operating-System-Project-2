@@ -67,13 +67,7 @@ static const CGFloat kMenuItemHoverRadius = 4.0;
     _focusModeActive = NO;
     _notificationCount = 0;
 
-    // ── Vibrancy (real macOS translucency) ──
-    _vibrancyView = [[NSVisualEffectView alloc] initWithFrame:self.bounds];
-    _vibrancyView.material = NSVisualEffectMaterialMenu;
-    _vibrancyView.blendingMode = NSVisualEffectBlendingModeBehindWindow;
-    _vibrancyView.state = NSVisualEffectStateActive;
-    _vibrancyView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-    [self addSubview:_vibrancyView positioned:NSWindowBelow relativeTo:nil];
+    // (No vibrancy view — drawn manually in drawRect for glass effect)
 
     // ── Clock timer ──
     _clockTimer = [NSTimer scheduledTimerWithTimeInterval:1.0
@@ -160,8 +154,12 @@ static const CGFloat kMenuItemHoverRadius = 4.0;
   CGFloat barH = self.bounds.size.height;
   CGFloat barW = self.bounds.size.width;
 
+  // ── Translucent glass background ──
+  [[NSColor colorWithWhite:0.96 alpha:0.82] setFill];
+  NSRectFill(self.bounds);
+
   // ── Bottom separator (1px, like real macOS) ──
-  [[NSColor colorWithWhite:0.0 alpha:0.08] setFill];
+  [[NSColor colorWithWhite:0.0 alpha:0.10] setFill];
   NSRectFill(NSMakeRect(0, 0, barW, 0.5));
 
   // ── LEFT SIDE ──
